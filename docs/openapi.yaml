@@ -63,40 +63,6 @@ paths:
         '401':
           description: Invalid credentials
 
-  /auth/register:
-    post:
-      summary: Register new user
-      tags:
-        - Authentication
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - email
-                - password
-                - name
-              properties:
-                email:
-                  type: string
-                  format: email
-                password:
-                  type: string
-                  format: password
-                  minLength: 8
-                name:
-                  type: string
-      responses:
-        '201':
-          description: User created successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AuthResponse'
-        '400':
-          description: Invalid input or email already exists
 
   /auth/refresh:
     post:
