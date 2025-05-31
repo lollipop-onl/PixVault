@@ -117,11 +117,6 @@ paths:
             type: string
             enum: [photo, video, all]
             default: all
-        - name: albumId
-          in: query
-          schema:
-            type: string
-            format: uuid
         - name: tags
           in: query
           schema:
@@ -173,9 +168,6 @@ paths:
                 file:
                   type: string
                   format: binary
-                albumId:
-                  type: string
-                  format: uuid
                 tags:
                   type: array
                   items:
@@ -252,9 +244,6 @@ paths:
                   type: array
                   items:
                     type: string
-                albumId:
-                  type: string
-                  format: uuid
                 location:
                   type: object
                   properties:
@@ -400,145 +389,6 @@ paths:
         '404':
           description: Media not found
 
-  /albums:
-    get:
-      summary: List albums
-      tags:
-        - Albums
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: page
-          in: query
-          schema:
-            type: integer
-            default: 1
-        - name: limit
-          in: query
-          schema:
-            type: integer
-            default: 20
-      responses:
-        '200':
-          description: List of albums
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  items:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Album'
-                  pagination:
-                    $ref: '#/components/schemas/Pagination'
-
-    post:
-      summary: Create new album
-      tags:
-        - Albums
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - name
-              properties:
-                name:
-                  type: string
-                description:
-                  type: string
-                coverMediaId:
-                  type: string
-                  format: uuid
-      responses:
-        '201':
-          description: Album created successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Album'
-
-  /albums/{id}:
-    get:
-      summary: Get album details
-      tags:
-        - Albums
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: id
-          in: path
-          schema:
-            type: string
-            format: uuid
-      responses:
-        '200':
-          description: Album details
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Album'
-        '404':
-          description: Album not found
-
-    put:
-      summary: Update album
-      tags:
-        - Albums
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: id
-          in: path
-          schema:
-            type: string
-            format: uuid
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                name:
-                  type: string
-                description:
-                  type: string
-                coverMediaId:
-                  type: string
-                  format: uuid
-      responses:
-        '200':
-          description: Album updated successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Album'
-        '404':
-          description: Album not found
-
-    delete:
-      summary: Delete album
-      tags:
-        - Albums
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: id
-          in: path
-          schema:
-            type: string
-            format: uuid
-      responses:
-        '204':
-          description: Album deleted successfully
-        '404':
-          description: Album not found
 
   /storage/stats:
     get:
@@ -646,9 +496,6 @@ components:
           type: array
           items:
             type: string
-        albumId:
-          type: string
-          format: uuid
         location:
           type: object
           properties:
@@ -698,34 +545,6 @@ components:
           type: string
           format: date-time
 
-    Album:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-        userId:
-          type: string
-          format: uuid
-        name:
-          type: string
-        description:
-          type: string
-        coverMediaId:
-          type: string
-          format: uuid
-        coverUrl:
-          type: string
-        mediaCount:
-          type: integer
-        totalSize:
-          type: integer
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
 
     StorageStats:
       type: object
@@ -820,8 +639,6 @@ tags:
     description: User authentication and registration
   - name: Media
     description: Photo and video management
-  - name: Albums
-    description: Album management
   - name: Storage
     description: Storage management and statistics
   - name: Jobs
