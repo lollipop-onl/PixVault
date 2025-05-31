@@ -1,0 +1,39 @@
+{
+  "name": "pixvault",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Low-cost photo and video storage solution using AWS S3 Glacier",
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "dev": "npm run docker:up && npm run dev:all",
+    "dev:all": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && sbt run",
+    "docker:up": "docker-compose up -d && echo 'Services started! 🚀\nPostgreSQL: localhost:5432\nLocalStack: localhost:4566\nMinIO: localhost:9000 (Console: localhost:9001)'",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "docker:clean": "docker-compose down -v",
+    "docker:ps": "docker-compose ps",
+    "docker:restart": "npm run docker:down && npm run docker:up",
+    "setup": "[ ! -f .env ] && cp .env.example .env || true && npm install && echo 'Setup complete! Run npm run docker:up to start services'",
+    "clean": "npm run docker:clean && rm -rf node_modules frontend/node_modules backend/target",
+    "test": "npm run test:frontend && npm run test:backend",
+    "test:frontend": "cd frontend && npm test",
+    "test:backend": "cd backend && sbt test",
+    "build": "npm run build:frontend && npm run build:backend",
+    "build:frontend": "cd frontend && npm run build",
+    "build:backend": "cd backend && sbt dist",
+    "db:shell": "docker-compose exec postgres psql -U pixvault -d pixvault",
+    "minio:shell": "docker-compose exec minio /bin/sh"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  }
+}
