@@ -1,0 +1,872 @@
+openapi: 3.0.3
+info:
+  title: PixVault API
+  description: API for managing photos and videos with long-term storage in AWS S3 Glacier
+  version: 1.0.0
+  contact:
+    name: PixVault Team
+servers:
+  - url: http://localhost:9000/api
+    description: Local development server
+  - url: https://api.pixvault.example.com
+    description: Production server
+
+paths:
+  /health:
+    get:
+      summary: Health check endpoint
+      tags:
+        - System
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /auth/login:
+    post:
+      summary: User login
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid credentials
+
+  /auth/register:
+    post:
+      summary: Register new user
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+                - name
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+                  minLength: 8
+                name:
+                  type: string
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Invalid input or email already exists
+
+  /auth/refresh:
+    post:
+      summary: Refresh access token
+      tags:
+        - Authentication
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refreshToken
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+
+  /media:
+    get:
+      summary: List media items
+      tags:
+        - Media
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 100
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [photo, video, all]
+            default: all
+        - name: albumId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: tags
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+          explode: true
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: List of media items
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MediaItem'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+
+    post:
+      summary: Upload new media
+      tags:
+        - Media
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                albumId:
+                  type: string
+                  format: uuid
+                tags:
+                  type: array
+                  items:
+                    type: string
+                description:
+                  type: string
+                location:
+                  type: object
+                  properties:
+                    latitude:
+                      type: number
+                    longitude:
+                      type: number
+                capturedAt:
+                  type: string
+                  format: date-time
+      responses:
+        '201':
+          description: Media uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediaItem'
+        '400':
+          description: Invalid file or request
+        '413':
+          description: File too large
+
+  /media/{id}:
+    get:
+      summary: Get media details
+      tags:
+        - Media
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Media details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediaItem'
+        '404':
+          description: Media not found
+
+    put:
+      summary: Update media metadata
+      tags:
+        - Media
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                description:
+                  type: string
+                tags:
+                  type: array
+                  items:
+                    type: string
+                albumId:
+                  type: string
+                  format: uuid
+                location:
+                  type: object
+                  properties:
+                    latitude:
+                      type: number
+                    longitude:
+                      type: number
+      responses:
+        '200':
+          description: Media updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediaItem'
+        '404':
+          description: Media not found
+
+    delete:
+      summary: Delete media
+      tags:
+        - Media
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Media deleted successfully
+        '404':
+          description: Media not found
+
+  /media/{id}/download:
+    get:
+      summary: Download media file
+      tags:
+        - Media
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: quality
+          in: query
+          schema:
+            type: string
+            enum: [original, high, medium, low, thumbnail]
+            default: original
+      responses:
+        '200':
+          description: Media file
+          content:
+            image/*:
+              schema:
+                type: string
+                format: binary
+            video/*:
+              schema:
+                type: string
+                format: binary
+        '302':
+          description: Redirect to presigned URL
+          headers:
+            Location:
+              schema:
+                type: string
+        '404':
+          description: Media not found
+
+  /media/{id}/archive:
+    post:
+      summary: Archive media to Glacier
+      tags:
+        - Media
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '202':
+          description: Archive process started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jobId:
+                    type: string
+                  estimatedCompletionTime:
+                    type: string
+                    format: date-time
+        '404':
+          description: Media not found
+
+  /media/{id}/restore:
+    post:
+      summary: Restore media from Glacier
+      tags:
+        - Media
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tier:
+                  type: string
+                  enum: [Expedited, Standard, Bulk]
+                  default: Standard
+      responses:
+        '202':
+          description: Restore process started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jobId:
+                    type: string
+                  estimatedCompletionTime:
+                    type: string
+                    format: date-time
+                  estimatedCost:
+                    type: number
+        '404':
+          description: Media not found
+
+  /albums:
+    get:
+      summary: List albums
+      tags:
+        - Albums
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: List of albums
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Album'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+
+    post:
+      summary: Create new album
+      tags:
+        - Albums
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                coverMediaId:
+                  type: string
+                  format: uuid
+      responses:
+        '201':
+          description: Album created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Album'
+
+  /albums/{id}:
+    get:
+      summary: Get album details
+      tags:
+        - Albums
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Album details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Album'
+        '404':
+          description: Album not found
+
+    put:
+      summary: Update album
+      tags:
+        - Albums
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                coverMediaId:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: Album updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Album'
+        '404':
+          description: Album not found
+
+    delete:
+      summary: Delete album
+      tags:
+        - Albums
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Album deleted successfully
+        '404':
+          description: Album not found
+
+  /storage/stats:
+    get:
+      summary: Get storage statistics
+      tags:
+        - Storage
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Storage statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StorageStats'
+
+  /jobs/{id}:
+    get:
+      summary: Get job status
+      tags:
+        - Jobs
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Job status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+        '404':
+          description: Job not found
+
+components:
+  schemas:
+    AuthResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        expiresIn:
+          type: integer
+        user:
+          $ref: '#/components/schemas/User'
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        storageQuota:
+          type: integer
+          description: Storage quota in bytes
+        storageUsed:
+          type: integer
+          description: Storage used in bytes
+
+    MediaItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [photo, video]
+        filename:
+          type: string
+        originalFilename:
+          type: string
+        mimeType:
+          type: string
+        size:
+          type: integer
+          description: File size in bytes
+        width:
+          type: integer
+        height:
+          type: integer
+        duration:
+          type: number
+          description: Video duration in seconds
+        description:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        albumId:
+          type: string
+          format: uuid
+        location:
+          type: object
+          properties:
+            latitude:
+              type: number
+            longitude:
+              type: number
+            placeName:
+              type: string
+        metadata:
+          type: object
+          properties:
+            camera:
+              type: string
+            lens:
+              type: string
+            iso:
+              type: integer
+            aperture:
+              type: number
+            shutterSpeed:
+              type: string
+            focalLength:
+              type: number
+        storageClass:
+          type: string
+          enum: [STANDARD, GLACIER, DEEP_ARCHIVE]
+        storageStatus:
+          type: string
+          enum: [ACTIVE, ARCHIVING, ARCHIVED, RESTORING]
+        thumbnailUrl:
+          type: string
+        previewUrl:
+          type: string
+        originalUrl:
+          type: string
+        capturedAt:
+          type: string
+          format: date-time
+        uploadedAt:
+          type: string
+          format: date-time
+        archivedAt:
+          type: string
+          format: date-time
+        lastAccessedAt:
+          type: string
+          format: date-time
+
+    Album:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        coverMediaId:
+          type: string
+          format: uuid
+        coverUrl:
+          type: string
+        mediaCount:
+          type: integer
+        totalSize:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    StorageStats:
+      type: object
+      properties:
+        totalSize:
+          type: integer
+          description: Total storage used in bytes
+        standardSize:
+          type: integer
+          description: Size in standard storage
+        glacierSize:
+          type: integer
+          description: Size in Glacier storage
+        deepArchiveSize:
+          type: integer
+          description: Size in Deep Archive storage
+        mediaCount:
+          type: object
+          properties:
+            total:
+              type: integer
+            photos:
+              type: integer
+            videos:
+              type: integer
+        monthlyCost:
+          type: object
+          properties:
+            storage:
+              type: number
+            retrieval:
+              type: number
+            transfer:
+              type: number
+            total:
+              type: number
+
+    Job:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [ARCHIVE, RESTORE, THUMBNAIL_GENERATION, VIDEO_PROCESSING]
+        status:
+          type: string
+          enum: [PENDING, PROCESSING, COMPLETED, FAILED]
+        progress:
+          type: number
+          minimum: 0
+          maximum: 100
+        mediaId:
+          type: string
+          format: uuid
+        result:
+          type: object
+        error:
+          type: string
+        startedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+        estimatedCompletionTime:
+          type: string
+          format: date-time
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+        totalPages:
+          type: integer
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+tags:
+  - name: System
+    description: System endpoints
+  - name: Authentication
+    description: User authentication and registration
+  - name: Media
+    description: Photo and video management
+  - name: Albums
+    description: Album management
+  - name: Storage
+    description: Storage management and statistics
+  - name: Jobs
+    description: Background job monitoring
