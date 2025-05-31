@@ -8,7 +8,7 @@ info:
 servers:
   - url: http://localhost:9000/api
     description: Local development server
-  - url: https://api.pixvault.example.com
+  - url: https://api.pixvault.app
     description: Production server
 
 paths:
