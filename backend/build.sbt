@@ -10,7 +10,20 @@ libraryDependencies ++= Seq(
   guice,
   "org.scalatestplus.play" %% "scalatestplus-play" % "7.0.1" % Test,
   "com.fasterxml.jackson.core" % "jackson-databind" % "2.14.3",
-  "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.14.3"
+  "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.14.3",
+  // PostgreSQL and database
+  "org.postgresql" % "postgresql" % "42.7.1",
+  "com.typesafe.slick" %% "slick" % "3.5.0",
+  "com.typesafe.slick" %% "slick-hikaricp" % "3.5.0",
+  "com.typesafe.play" %% "play-json" % "2.10.3",
+  // AWS SDK for S3 (MinIO compatible)
+  "com.amazonaws" % "aws-java-sdk-s3" % "1.12.590",
+  // Image processing
+  "com.sksamuel.scrimage" % "scrimage-core" % "4.0.32",
+  "com.sksamuel.scrimage" % "scrimage-formats-extra" % "4.0.32",
+  // Database migrations
+  "org.flywaydb" % "flyway-core" % "10.4.1",
+  "org.flywaydb" % "flyway-database-postgresql" % "10.4.1"
 )
 
 dependencyOverrides ++= Seq(
