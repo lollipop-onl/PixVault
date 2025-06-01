@@ -3,3 +3,14 @@ dist/
 .DS_Store
 *.log
 *.local*
+
+# IDE and development tools
+.metals/
+.vscode/
+.bloop/
+.bsp/
+metals.sbt
+project/project/
+
+# Mise configuration
+mise.toml
