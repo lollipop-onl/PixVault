@@ -8,7 +8,7 @@ import java.time.Instant
 import java.util.UUID
 import slick.jdbc.JdbcType
 import play.api.libs.json._
-import slick.jdbc.PostgresProfile
+import slick.jdbc.PostgresProfile.api._
 
 // Row case class to work around Scala's 22-element tuple limitation
 case class MediaItemRow(
@@ -54,7 +54,7 @@ object MediaItemRow {
 
 class MediaItemTable(tag: Tag) extends Table[MediaItemRow](tag, "media_items") {
   
-  // JSON column mapping
+  // JSONB column mapping for PostgreSQL with explicit casting
   implicit val jsValueColumnType: JdbcType[JsValue] = 
     MappedColumnType.base[JsValue, String](
       json => Json.stringify(json),
@@ -63,14 +63,14 @@ class MediaItemTable(tag: Tag) extends Table[MediaItemRow](tag, "media_items") {
     
   implicit val locationColumnType: JdbcType[Option[Location]] = 
     MappedColumnType.base[Option[Location], String](
-      opt => opt.map(loc => Json.stringify(Json.toJson(loc))).getOrElse("null"),
-      str => if (str == "null") None else Json.parse(str).asOpt[Location]
+      opt => opt.map(loc => Json.stringify(Json.toJson(loc))).getOrElse("{}"),
+      str => if (str == "{}" || str.isEmpty) None else Json.parse(str).asOpt[Location]
     )
   
   implicit val metadataColumnType: JdbcType[Option[MediaMetadata]] = 
     MappedColumnType.base[Option[MediaMetadata], String](
-      opt => opt.map(meta => Json.stringify(Json.toJson(meta))).getOrElse("null"),
-      str => if (str == "null") None else Json.parse(str).asOpt[MediaMetadata]
+      opt => opt.map(meta => Json.stringify(Json.toJson(meta))).getOrElse("{}"),
+      str => if (str == "{}" || str.isEmpty) None else Json.parse(str).asOpt[MediaMetadata]
     )
 
   // String list column mapping for tags (will be handled separately via media_tags table)

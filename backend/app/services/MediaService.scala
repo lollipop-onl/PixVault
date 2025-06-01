@@ -81,7 +81,7 @@ class MediaService @Inject()(
       
       // Generate and upload thumbnail
       thumbnailBytes <- Future(generateThumbnail(tempFile))
-      thumbnailUrl <- storageService.uploadBytes(thumbnailKey, thumbnailBytes, "image/webp")
+      thumbnailUrl <- storageService.uploadBytes(thumbnailKey, thumbnailBytes, "image/jpeg")
       
       // Generate and upload preview (if image)
       previewUrl <- if (mediaType == MediaType.Photo) {
@@ -239,7 +239,7 @@ class MediaService @Inject()(
     Thumbnails.of(file)
       .size(ThumbnailSize, ThumbnailSize)
       .crop(Positions.CENTER)
-      .outputFormat("webp")
+      .outputFormat("jpg")
       .outputQuality(0.8)
       .toOutputStream(outputStream)
     

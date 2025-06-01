@@ -27,9 +27,9 @@ CREATE TABLE media_items (
     CONSTRAINT unique_file_hash UNIQUE (file_hash)
 );
 
--- JSON columns for location and metadata
-ALTER TABLE media_items ADD COLUMN location JSONB;
-ALTER TABLE media_items ADD COLUMN metadata JSONB;
+-- JSON columns for location and metadata (using TEXT temporarily for Slick compatibility)
+ALTER TABLE media_items ADD COLUMN location TEXT;
+ALTER TABLE media_items ADD COLUMN metadata TEXT;
 
 -- Indexes for performance
 CREATE INDEX idx_media_items_user_id ON media_items(user_id);
