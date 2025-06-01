@@ -6,13 +6,13 @@ info:
   contact:
     name: PixVault Team
 servers:
-  - url: http://localhost:9000/api
+  - url: http://localhost:9000
     description: Local development server
   - url: https://api.pixvault.app
     description: Production server
 
 paths:
-  /health:
+  /v1/health:
     get:
       summary: Health check endpoint
       tags:
@@ -33,7 +33,7 @@ paths:
                     format: date-time
                     example: "2024-12-15T10:30:45.123Z"
 
-  /auth/login:
+  /v1/auth/login:
     post:
       summary: User login
       tags:
@@ -67,7 +67,7 @@ paths:
           description: Invalid credentials
 
 
-  /auth/refresh:
+  /v1/auth/refresh:
     post:
       summary: Refresh access token
       tags:
@@ -94,7 +94,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AuthResponse'
 
-  /media:
+  /v1/media:
     get:
       summary: List media items
       tags:
@@ -286,7 +286,7 @@ paths:
         '413':
           description: File too large
 
-  /media/{id}:
+  /v1/media/{id}:
     get:
       summary: Get media details
       tags:
@@ -382,7 +382,7 @@ paths:
         '404':
           description: Media not found
 
-  /media/{id}/download:
+  /v1/media/{id}/download:
     get:
       summary: Download media file
       tags:
@@ -426,7 +426,7 @@ paths:
         '404':
           description: Media not found
 
-  /media/{id}/archive:
+  /v1/media/{id}/archive:
     post:
       summary: Archive media to Glacier
       tags:
@@ -459,7 +459,7 @@ paths:
         '404':
           description: Media not found
 
-  /media/{id}/restore:
+  /v1/media/{id}/restore:
     post:
       summary: Restore media from Glacier
       tags:
@@ -507,7 +507,7 @@ paths:
           description: Media not found
 
 
-  /storage/stats:
+  /v1/storage/stats:
     get:
       summary: Get storage statistics
       tags:
@@ -522,7 +522,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/StorageStats'
 
-  /jobs/{id}:
+  /v1/jobs/{id}:
     get:
       summary: Get job status
       tags:
