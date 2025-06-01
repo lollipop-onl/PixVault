@@ -56,10 +56,10 @@ The backend follows a clean architecture with repository pattern:
 - Refresh token support
 
 ### API Endpoints (from OpenAPI spec)
-- `/api/auth/login` - User authentication
-- `/api/media/*` - Media CRUD operations (not yet implemented)
-- `/api/storage/*` - Storage management (not yet implemented)
-- `/api/jobs/*` - Background job monitoring (not yet implemented)
+- `/v1/auth/login` - User authentication
+- `/v1/media/*` - Media CRUD operations (not yet implemented)
+- `/v1/storage/*` - Storage management (not yet implemented)
+- `/v1/jobs/*` - Background job monitoring (not yet implemented)
 
 ## Configuration
 

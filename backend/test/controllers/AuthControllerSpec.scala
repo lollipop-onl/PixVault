@@ -67,7 +67,7 @@ class AuthControllerSpec extends PlaySpec with GuiceOneAppPerTest with MockitoSu
       when(mockJwtService.generateRefreshToken(testUser.id))
         .thenReturn("mock.refresh.token")
 
-      val request = FakeRequest(POST, "/api/auth/login")
+      val request = FakeRequest(POST, "/v1/auth/login")
         .withJsonBody(Json.obj(
           "email" -> "test@example.com",
           "password" -> "correctpassword"
@@ -98,7 +98,7 @@ class AuthControllerSpec extends PlaySpec with GuiceOneAppPerTest with MockitoSu
       when(mockPasswordService.verifyPassword("wrongpassword", passwordHash))
         .thenReturn(false)
 
-      val request = FakeRequest(POST, "/api/auth/login")
+      val request = FakeRequest(POST, "/v1/auth/login")
         .withJsonBody(Json.obj(
           "email" -> "test@example.com",
           "password" -> "wrongpassword"
@@ -119,7 +119,7 @@ class AuthControllerSpec extends PlaySpec with GuiceOneAppPerTest with MockitoSu
       when(mockUserRepository.findByEmailWithPassword("nonexistent@example.com"))
         .thenReturn(Future.successful(None))
 
-      val request = FakeRequest(POST, "/api/auth/login")
+      val request = FakeRequest(POST, "/v1/auth/login")
         .withJsonBody(Json.obj(
           "email" -> "nonexistent@example.com",
           "password" -> "anypassword"
@@ -135,7 +135,7 @@ class AuthControllerSpec extends PlaySpec with GuiceOneAppPerTest with MockitoSu
     }
 
     "return 400 Bad Request for invalid JSON format" in {
-      val request = FakeRequest(POST, "/api/auth/login")
+      val request = FakeRequest(POST, "/v1/auth/login")
         .withJsonBody(Json.obj(
           "username" -> "test@example.com"  // Missing password field
         ))
@@ -151,7 +151,7 @@ class AuthControllerSpec extends PlaySpec with GuiceOneAppPerTest with MockitoSu
     }
 
     "return 400 Bad Request for missing email field" in {
-      val request = FakeRequest(POST, "/api/auth/login")
+      val request = FakeRequest(POST, "/v1/auth/login")
         .withJsonBody(Json.obj(
           "password" -> "password123"
         ))
@@ -166,7 +166,7 @@ class AuthControllerSpec extends PlaySpec with GuiceOneAppPerTest with MockitoSu
     }
 
     "return 400 Bad Request for missing password field" in {
-      val request = FakeRequest(POST, "/api/auth/login")
+      val request = FakeRequest(POST, "/v1/auth/login")
         .withJsonBody(Json.obj(
           "email" -> "test@example.com"
         ))
@@ -192,7 +192,7 @@ class AuthControllerSpec extends PlaySpec with GuiceOneAppPerTest with MockitoSu
       when(mockPasswordService.verifyPassword("SecurePass123!", passwordHash))
         .thenReturn(false) // Password verification fails - no more test user bypass
 
-      val request = FakeRequest(POST, "/api/auth/login")
+      val request = FakeRequest(POST, "/v1/auth/login")
         .withJsonBody(Json.obj(
           "email" -> "tanaka.yuki@example.com",
           "password" -> "SecurePass123!"
@@ -226,7 +226,7 @@ class AuthControllerSpec extends PlaySpec with GuiceOneAppPerTest with MockitoSu
       when(mockJwtService.generateRefreshToken(userId)).thenReturn(newRefreshToken)
       when(mockUserRepository.findById(userUuid)).thenReturn(Future.successful(Some(testUser)))
 
-      val request = FakeRequest(POST, "/api/auth/refresh")
+      val request = FakeRequest(POST, "/v1/auth/refresh")
         .withJsonBody(Json.obj("refreshToken" -> validRefreshToken))
 
       val result = route(app, request).get
@@ -247,7 +247,7 @@ class AuthControllerSpec extends PlaySpec with GuiceOneAppPerTest with MockitoSu
 
       when(mockJwtService.isRefreshToken(invalidRefreshToken)).thenReturn(false)
 
-      val request = FakeRequest(POST, "/api/auth/refresh")
+      val request = FakeRequest(POST, "/v1/auth/refresh")
         .withJsonBody(Json.obj("refreshToken" -> invalidRefreshToken))
 
       val result = route(app, request).get
@@ -270,7 +270,7 @@ class AuthControllerSpec extends PlaySpec with GuiceOneAppPerTest with MockitoSu
       when(mockJwtService.extractUserId(validRefreshToken)).thenReturn(Some(userId))
       when(mockUserRepository.findById(userUuid)).thenReturn(Future.successful(None))
 
-      val request = FakeRequest(POST, "/api/auth/refresh")
+      val request = FakeRequest(POST, "/v1/auth/refresh")
         .withJsonBody(Json.obj("refreshToken" -> validRefreshToken))
 
       val result = route(app, request).get
@@ -289,7 +289,7 @@ class AuthControllerSpec extends PlaySpec with GuiceOneAppPerTest with MockitoSu
       when(mockJwtService.isRefreshToken(validRefreshToken)).thenReturn(true)
       when(mockJwtService.extractUserId(validRefreshToken)).thenReturn(None)
 
-      val request = FakeRequest(POST, "/api/auth/refresh")
+      val request = FakeRequest(POST, "/v1/auth/refresh")
         .withJsonBody(Json.obj("refreshToken" -> validRefreshToken))
 
       val result = route(app, request).get
@@ -302,7 +302,7 @@ class AuthControllerSpec extends PlaySpec with GuiceOneAppPerTest with MockitoSu
     }
 
     "return 400 Bad Request for malformed request" in {
-      val request = FakeRequest(POST, "/api/auth/refresh")
+      val request = FakeRequest(POST, "/v1/auth/refresh")
         .withJsonBody(Json.obj("invalidField" -> "value"))
 
       val result = route(app, request).get
@@ -316,7 +316,7 @@ class AuthControllerSpec extends PlaySpec with GuiceOneAppPerTest with MockitoSu
     }
 
     "return 400 Bad Request for missing refreshToken field" in {
-      val request = FakeRequest(POST, "/api/auth/refresh")
+      val request = FakeRequest(POST, "/v1/auth/refresh")
         .withJsonBody(Json.obj())
 
       val result = route(app, request).get
