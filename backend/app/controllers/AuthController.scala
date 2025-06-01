@@ -20,6 +20,7 @@ class AuthController @Inject()(
 )(implicit ec: ExecutionContext) extends BaseController {
 
   private val TokenExpirySeconds = 3600 // 1 hour
+  private val InvalidRefreshTokenError = "Invalid refresh token"
 
   def login: Action[JsValue] = Action.async(parse.json) { implicit request =>
     request.body.validate[LoginRequest] match {
@@ -49,7 +50,7 @@ class AuthController @Inject()(
             Ok(Json.toJson(authResponse))
           case None =>
             Unauthorized(Json.obj(
-              "error" -> "Invalid refresh token"
+              "error" -> InvalidRefreshTokenError
             ))
         }
       
@@ -89,18 +90,25 @@ class AuthController @Inject()(
     } else {
       jwtService.extractUserId(refreshToken) match {
         case Some(userId) =>
-          userRepository.findById(UUID.fromString(userId)).map { userOpt =>
-            userOpt.map { user =>
-              val newAccessToken = jwtService.generateAccessToken(user.id, user.email)
-              val newRefreshToken = jwtService.generateRefreshToken(user.id)
+          try {
+            val userUuid = UUID.fromString(userId)
+            userRepository.findById(userUuid).map { userOpt =>
+              userOpt.map { user =>
+                val newAccessToken = jwtService.generateAccessToken(user.id, user.email)
+                val newRefreshToken = jwtService.generateRefreshToken(user.id)
 
-              AuthResponse(
-                accessToken = newAccessToken,
-                refreshToken = newRefreshToken,
-                expiresIn = TokenExpirySeconds,
-                user = user
-              )
+                AuthResponse(
+                  accessToken = newAccessToken,
+                  refreshToken = newRefreshToken,
+                  expiresIn = TokenExpirySeconds,
+                  user = user
+                )
+              }
             }
+          } catch {
+            case _: IllegalArgumentException =>
+              // Invalid UUID format in token
+              Future.successful(None)
           }
         case None =>
           Future.successful(None)
