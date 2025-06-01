@@ -4,11 +4,11 @@
 # ~~~~
 
 # Health check
-GET     /health                     controllers.HealthController.health
+GET     /v1/health                  controllers.HealthController.health
 
 # Authentication
-POST    /api/auth/login             controllers.AuthController.login
-POST    /api/auth/refresh           controllers.AuthController.refresh
+POST    /v1/auth/login              controllers.AuthController.login
+POST    /v1/auth/refresh            controllers.AuthController.refresh
 
 # Home page
 GET     /                           controllers.HomeController.index
