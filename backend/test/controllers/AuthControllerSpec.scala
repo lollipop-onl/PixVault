@@ -10,7 +10,7 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.Application
 import models._
 import repositories.{UserRepository, UserWithPassword}
-import services.PasswordService
+import services.{PasswordService, JwtService}
 import scala.concurrent.{Future, ExecutionContext}
 import java.time.Instant
 import org.mockito.Mockito._
@@ -36,11 +36,13 @@ class AuthControllerSpec extends PlaySpec with GuiceOneAppPerTest with MockitoSu
   override def fakeApplication(): Application = {
     val mockUserRepository = mock[UserRepository]
     val mockPasswordService = mock[PasswordService]
+    val mockJwtService = mock[JwtService]
 
     new GuiceApplicationBuilder()
       .overrides(
         bind[UserRepository].toInstance(mockUserRepository),
-        bind[PasswordService].toInstance(mockPasswordService)
+        bind[PasswordService].toInstance(mockPasswordService),
+        bind[JwtService].toInstance(mockJwtService)
       )
       .build()
   }
@@ -50,6 +52,7 @@ class AuthControllerSpec extends PlaySpec with GuiceOneAppPerTest with MockitoSu
     "return 200 OK with auth tokens for valid credentials" in {
       val mockUserRepository = app.injector.instanceOf[UserRepository]
       val mockPasswordService = app.injector.instanceOf[PasswordService]
+      val mockJwtService = app.injector.instanceOf[JwtService]
       val testUser = createTestUser
       val passwordHash = "$2a$10$validhash"
       val userWithPassword = createUserWithPassword(testUser, passwordHash)
@@ -58,6 +61,10 @@ class AuthControllerSpec extends PlaySpec with GuiceOneAppPerTest with MockitoSu
         .thenReturn(Future.successful(Some(userWithPassword)))
       when(mockPasswordService.verifyPassword("correctpassword", passwordHash))
         .thenReturn(true)
+      when(mockJwtService.generateAccessToken(testUser.id, testUser.email))
+        .thenReturn("mock.access.token")
+      when(mockJwtService.generateRefreshToken(testUser.id))
+        .thenReturn("mock.refresh.token")
 
       val request = FakeRequest(POST, "/api/auth/login")
         .withJsonBody(Json.obj(
@@ -71,8 +78,8 @@ class AuthControllerSpec extends PlaySpec with GuiceOneAppPerTest with MockitoSu
       contentType(result) mustBe Some("application/json")
       
       val json = contentAsJson(result)
-      (json \ "accessToken").as[String] must include("access_token_signature")
-      (json \ "refreshToken").as[String] must include("refresh_token_signature")
+      (json \ "accessToken").as[String] mustBe "mock.access.token"
+      (json \ "refreshToken").as[String] mustBe "mock.refresh.token"
       (json \ "expiresIn").as[Int] mustBe 3600
       (json \ "user" \ "email").as[String] mustBe "test@example.com"
       (json \ "user" \ "name").as[String] mustBe "Test User"
@@ -172,7 +179,7 @@ class AuthControllerSpec extends PlaySpec with GuiceOneAppPerTest with MockitoSu
       (json \ "error").as[String] mustBe "Invalid request format"
     }
 
-    "allow test user login with hardcoded credentials" in {
+    "reject test user login when password does not match" in {
       val mockUserRepository = app.injector.instanceOf[UserRepository]
       val mockPasswordService = app.injector.instanceOf[PasswordService]
       val testUser = createTestUser.copy(email = "tanaka.yuki@example.com")
@@ -182,7 +189,7 @@ class AuthControllerSpec extends PlaySpec with GuiceOneAppPerTest with MockitoSu
       when(mockUserRepository.findByEmailWithPassword("tanaka.yuki@example.com"))
         .thenReturn(Future.successful(Some(userWithPassword)))
       when(mockPasswordService.verifyPassword("SecurePass123!", passwordHash))
-        .thenReturn(false) // Password verification would fail, but test user bypass should work
+        .thenReturn(false) // Password verification fails - no more test user bypass
 
       val request = FakeRequest(POST, "/api/auth/login")
         .withJsonBody(Json.obj(
@@ -192,12 +199,11 @@ class AuthControllerSpec extends PlaySpec with GuiceOneAppPerTest with MockitoSu
 
       val result = route(app, request).get
 
-      status(result) mustBe OK
+      status(result) mustBe UNAUTHORIZED
       contentType(result) mustBe Some("application/json")
       
       val json = contentAsJson(result)
-      (json \ "accessToken").as[String] must include("access_token_signature")
-      (json \ "user" \ "email").as[String] mustBe "tanaka.yuki@example.com"
+      (json \ "error").as[String] mustBe "Invalid credentials"
     }
   }
 }

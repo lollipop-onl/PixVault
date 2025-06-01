@@ -26,7 +26,9 @@ libraryDependencies ++= Seq(
   "org.flywaydb" % "flyway-core" % "10.4.1",
   "org.flywaydb" % "flyway-database-postgresql" % "10.4.1",
   // Password hashing
-  "org.mindrot" % "jbcrypt" % "0.4"
+  "org.mindrot" % "jbcrypt" % "0.4",
+  // JWT
+  "com.github.jwt-scala" %% "jwt-play-json" % "10.0.0"
 )
 
 dependencyOverrides ++= Seq(
