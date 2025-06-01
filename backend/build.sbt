@@ -9,6 +9,7 @@ scalaVersion := "3.7.0"
 libraryDependencies ++= Seq(
   guice,
   "org.scalatestplus.play" %% "scalatestplus-play" % "7.0.1" % Test,
+  "org.mockito" % "mockito-core" % "5.8.0" % Test,
   "com.fasterxml.jackson.core" % "jackson-databind" % "2.14.3",
   "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.14.3",
   // PostgreSQL and database
