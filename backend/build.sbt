@@ -13,8 +13,8 @@ libraryDependencies ++= Seq(
   "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.14.3",
   // PostgreSQL and database
   "org.postgresql" % "postgresql" % "42.7.1",
-  "com.typesafe.slick" %% "slick" % "3.5.0",
-  "com.typesafe.slick" %% "slick-hikaricp" % "3.5.0",
+  "com.typesafe.play" %% "play-slick" % "5.3.0",
+  "com.typesafe.play" %% "play-slick-evolutions" % "5.3.0",
   "com.typesafe.play" %% "play-json" % "2.10.3",
   // AWS SDK for S3 (MinIO compatible)
   "com.amazonaws" % "aws-java-sdk-s3" % "1.12.590",
@@ -23,7 +23,9 @@ libraryDependencies ++= Seq(
   "com.sksamuel.scrimage" % "scrimage-formats-extra" % "4.0.32",
   // Database migrations
   "org.flywaydb" % "flyway-core" % "10.4.1",
-  "org.flywaydb" % "flyway-database-postgresql" % "10.4.1"
+  "org.flywaydb" % "flyway-database-postgresql" % "10.4.1",
+  // Password hashing
+  "org.mindrot" % "jbcrypt" % "0.4"
 )
 
 dependencyOverrides ++= Seq(

@@ -5,13 +5,17 @@ import play.api._
 import play.api.mvc._
 import play.api.libs.json._
 import models._
+import repositories.UserRepository
+import services.PasswordService
 import java.time.Instant
 import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class AuthController @Inject()(
-    val controllerComponents: ControllerComponents
+    val controllerComponents: ControllerComponents,
+    userRepository: UserRepository,
+    passwordService: PasswordService
 )(implicit ec: ExecutionContext) extends BaseController {
 
   def login: Action[JsValue] = Action.async(parse.json) { implicit request =>
@@ -35,28 +39,23 @@ class AuthController @Inject()(
   }
 
   private def authenticateUser(email: String, password: String): Future[Option[AuthResponse]] = {
-    Future.successful {
-      if (email == "tanaka.yuki@example.com" && password == "SecurePass123!") {
-        val user = User(
-          id = "7f2a4b8e-1234-5678-90ab-cdef12345678",
-          email = email,
-          name = "田中 由紀",
-          createdAt = Instant.parse("2023-01-15T08:00:00.000Z"),
-          storageQuota = 107374182400L,
-          storageUsed = 45678901234L
-        )
+    userRepository.findByEmailWithPassword(email).map { userWithPasswordOpt =>
+      userWithPasswordOpt.flatMap { case userWithPassword =>
+        // Verify password against stored hash
+        if (passwordService.verifyPassword(password, userWithPassword.passwordHash)) {
+          val user = userWithPassword.user
+          val accessToken = generateMockJWT("access", user.id, user.email)
+          val refreshToken = generateMockJWT("refresh", user.id, user.email)
 
-        val accessToken = generateMockJWT("access", user.id, email)
-        val refreshToken = generateMockJWT("refresh", user.id, email)
-
-        Some(AuthResponse(
-          accessToken = accessToken,
-          refreshToken = refreshToken,
-          expiresIn = 3600,
-          user = user
-        ))
-      } else {
-        None
+          Some(AuthResponse(
+            accessToken = accessToken,
+            refreshToken = refreshToken,
+            expiresIn = 3600,
+            user = user
+          ))
+        } else {
+          None
+        }
       }
     }
   }
