@@ -8,6 +8,7 @@ GET     /health                     controllers.HealthController.health
 
 # Authentication
 POST    /api/auth/login             controllers.AuthController.login
+POST    /api/auth/refresh           controllers.AuthController.refresh
 
 # Home page
 GET     /                           controllers.HomeController.index
