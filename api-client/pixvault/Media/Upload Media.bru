@@ -1,0 +1,51 @@
+meta {
+  name: Upload Media
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/v1/media
+  body: multipartForm
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:multipart-form {
+  file: @file(sample.jpg)
+  description: Test photo upload
+  tags[]: family
+  tags[]: vacation
+  tags[]: 2024
+}
+
+docs {
+  ## Upload Media
+  
+  Upload a new photo or video file to PixVault.
+  
+  ### Request
+  - **Method**: POST
+  - **URL**: /v1/media
+  - **Authentication**: Required (Bearer token)
+  - **Content-Type**: multipart/form-data
+  
+  ### Form Fields
+  - `file` (required): The media file to upload
+  - `description` (optional): Description of the media
+  - `tags[]` (optional): Array of tags
+  
+  ### Response
+  - **201 Created**: Media uploaded successfully
+  - **400 Bad Request**: Invalid file or missing required fields
+  - **401 Unauthorized**: Invalid or missing authentication
+  
+  ### Features
+  - Automatic duplicate detection using SHA-256 hash
+  - Automatic thumbnail generation
+  - EXIF metadata extraction
+  - Supports up to 50GB files
+}

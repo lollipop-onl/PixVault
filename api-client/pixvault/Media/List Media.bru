@@ -1,0 +1,60 @@
+meta {
+  name: List Media
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/v1/media?offset=0&limit=50
+  body: none
+  auth: bearer
+}
+
+params:query {
+  offset: 0
+  limit: 50
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+docs {
+  ## List Media
+  
+  Get a paginated list of media items for the authenticated user.
+  
+  ### Request
+  - **Method**: GET
+  - **URL**: /v1/media
+  - **Authentication**: Required (Bearer token)
+  
+  ### Query Parameters
+  - `offset` (optional): Number of items to skip (default: 0)
+  - `limit` (optional): Number of items to return (default: 50, max: 100)
+  
+  ### Response
+  - **200 OK**: List of media items
+  - **401 Unauthorized**: Invalid or missing authentication
+  
+  ### Response Format
+  ```json
+  {
+    "items": [
+      {
+        "id": "uuid",
+        "type": "photo",
+        "originalFilename": "DSC_1234.jpg",
+        "size": 1234567,
+        "uploadedAt": "2024-01-01T12:00:00Z",
+        // ... other fields
+      }
+    ],
+    "pagination": {
+      "offset": 0,
+      "limit": 50,
+      "total": 123
+    }
+  }
+  ```
+}

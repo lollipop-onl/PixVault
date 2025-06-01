@@ -1,0 +1,50 @@
+meta {
+  name: Get Media
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/v1/media/:id
+  body: none
+  auth: bearer
+}
+
+params:path {
+  id: {{mediaId}}
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+vars:pre-request {
+  mediaId: 123e4567-e89b-12d3-a456-426614174000
+}
+
+docs {
+  ## Get Media Details
+  
+  Get detailed information about a specific media item.
+  
+  ### Request
+  - **Method**: GET
+  - **URL**: /v1/media/:id
+  - **Authentication**: Required (Bearer token)
+  
+  ### Path Parameters
+  - `id`: UUID of the media item
+  
+  ### Response
+  - **200 OK**: Media item details
+  - **403 Forbidden**: Access denied (not owner)
+  - **404 Not Found**: Media not found
+  - **401 Unauthorized**: Invalid or missing authentication
+  
+  ### Response includes:
+  - File metadata (size, type, dimensions)
+  - Storage URLs (thumbnail, preview, original)
+  - EXIF metadata (camera, settings, GPS)
+  - Tags and description
+  - Upload and capture timestamps
+}

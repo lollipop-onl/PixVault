@@ -1,0 +1,46 @@
+meta {
+  name: Delete Media
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{baseUrl}}/v1/media/:id
+  body: none
+  auth: bearer
+}
+
+params:path {
+  id: {{mediaId}}
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+vars:pre-request {
+  mediaId: 123e4567-e89b-12d3-a456-426614174000
+}
+
+docs {
+  ## Delete Media
+  
+  Delete a media item and its associated files from storage.
+  
+  ### Request
+  - **Method**: DELETE
+  - **URL**: /v1/media/:id
+  - **Authentication**: Required (Bearer token)
+  
+  ### Path Parameters
+  - `id`: UUID of the media item
+  
+  ### Response
+  - **204 No Content**: Media deleted successfully
+  - **403 Forbidden**: Access denied (not owner)
+  - **404 Not Found**: Media not found
+  - **401 Unauthorized**: Invalid or missing authentication
+  
+  ### Warning
+  This action is permanent and cannot be undone. All associated files (original, thumbnail, preview) will be deleted from storage.
+}

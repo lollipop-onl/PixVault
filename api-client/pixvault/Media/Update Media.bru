@@ -1,0 +1,61 @@
+meta {
+  name: Update Media
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/v1/media/:id
+  body: json
+  auth: bearer
+}
+
+params:path {
+  id: {{mediaId}}
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "description": "Updated description for the media",
+    "tags": ["updated", "test", "2024"]
+  }
+}
+
+vars:pre-request {
+  mediaId: 123e4567-e89b-12d3-a456-426614174000
+}
+
+docs {
+  ## Update Media Metadata
+  
+  Update the metadata (description and tags) for a media item.
+  
+  ### Request
+  - **Method**: PUT
+  - **URL**: /v1/media/:id
+  - **Authentication**: Required (Bearer token)
+  - **Content-Type**: application/json
+  
+  ### Path Parameters
+  - `id`: UUID of the media item
+  
+  ### Request Body
+  ```json
+  {
+    "description": "New description",
+    "tags": ["tag1", "tag2"]
+  }
+  ```
+  
+  ### Response
+  - **200 OK**: Updated media item
+  - **403 Forbidden**: Access denied (not owner)
+  - **404 Not Found**: Media not found
+  - **401 Unauthorized**: Invalid or missing authentication
+  
+  Note: Only description and tags can be updated. File content cannot be changed.
+}
