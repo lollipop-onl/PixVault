@@ -88,3 +88,18 @@ Copy `.env.example` to `.env` for local development. Key variables:
 - Database migrations run automatically in dev mode
 - Use Bruno API client in `api-client/` for testing endpoints
 - Check `backend/logs/application.log` for detailed logs
+
+## Git Commit Message Convention
+Follow the Conventional Commits specification:
+- `feat:` New feature
+- `fix:` Bug fix
+- `docs:` Documentation changes
+- `style:` Code style changes (formatting, missing semicolons, etc.)
+- `refactor:` Code refactoring
+- `test:` Adding or updating tests
+- `chore:` Maintenance tasks, dependency updates
+
+Examples:
+- `feat: add user profile image upload`
+- `fix: resolve JWT token expiration issue`
+- `docs: update API documentation for media endpoints`
