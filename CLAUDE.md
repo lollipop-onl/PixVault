@@ -217,9 +217,6 @@ Copy `.env.example` to `.env` for local development. Key variables:
 // File hashing for duplicate detection
 "commons-codec" % "commons-codec" % "1.16.0",
 
-// RAW image processing
-"org.apache.commons" % "commons-imaging" % "1.0.0-alpha5",
-
 // Video metadata extraction
 "org.bytedeco" % "ffmpeg-platform" % "6.0-1.5.9"
 ```
