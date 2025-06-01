@@ -19,6 +19,9 @@ class AuthController @Inject()(
     jwtService: JwtService
 )(implicit ec: ExecutionContext) extends BaseController {
 
+  private val TokenExpirySeconds = 3600 // 1 hour
+  private val InvalidRefreshTokenError = "Invalid refresh token"
+
   def login: Action[JsValue] = Action.async(parse.json) { implicit request =>
     request.body.validate[LoginRequest] match {
       case JsSuccess(loginRequest, _) =>
@@ -28,6 +31,26 @@ class AuthController @Inject()(
           case None =>
             Unauthorized(Json.obj(
               "error" -> "Invalid credentials"
+            ))
+        }
+      
+      case JsError(errors) =>
+        Future.successful(BadRequest(Json.obj(
+          "error" -> "Invalid request format",
+          "details" -> JsError.toJson(errors)
+        )))
+    }
+  }
+
+  def refresh: Action[JsValue] = Action.async(parse.json) { implicit request =>
+    request.body.validate[RefreshRequest] match {
+      case JsSuccess(refreshRequest, _) =>
+        refreshTokens(refreshRequest.refreshToken).map {
+          case Some(authResponse) =>
+            Ok(Json.toJson(authResponse))
+          case None =>
+            Unauthorized(Json.obj(
+              "error" -> InvalidRefreshTokenError
             ))
         }
       
@@ -51,12 +74,44 @@ class AuthController @Inject()(
           Some(AuthResponse(
             accessToken = accessToken,
             refreshToken = refreshToken,
-            expiresIn = 3600, // 1 hour in seconds
+            expiresIn = TokenExpirySeconds,
             user = user
           ))
         } else {
           None
         }
+      }
+    }
+  }
+
+  private def refreshTokens(refreshToken: String): Future[Option[AuthResponse]] = {
+    if (!jwtService.isRefreshToken(refreshToken)) {
+      Future.successful(None)
+    } else {
+      jwtService.extractUserId(refreshToken) match {
+        case Some(userId) =>
+          try {
+            val userUuid = UUID.fromString(userId)
+            userRepository.findById(userUuid).map { userOpt =>
+              userOpt.map { user =>
+                val newAccessToken = jwtService.generateAccessToken(user.id, user.email)
+                val newRefreshToken = jwtService.generateRefreshToken(user.id)
+
+                AuthResponse(
+                  accessToken = newAccessToken,
+                  refreshToken = newRefreshToken,
+                  expiresIn = TokenExpirySeconds,
+                  user = user
+                )
+              }
+            }
+          } catch {
+            case _: IllegalArgumentException =>
+              // Invalid UUID format in token
+              Future.successful(None)
+          }
+        case None =>
+          Future.successful(None)
       }
     }
   }

@@ -28,7 +28,9 @@ libraryDependencies ++= Seq(
   // Password hashing
   "org.mindrot" % "jbcrypt" % "0.4",
   // JWT
-  "com.github.jwt-scala" %% "jwt-play-json" % "10.0.0"
+  "com.github.jwt-scala" %% "jwt-play-json" % "10.0.0",
+  // JANSI for colored console output
+  "org.fusesource.jansi" % "jansi" % "2.4.1"
 )
 
 dependencyOverrides ++= Seq(
@@ -37,6 +39,27 @@ dependencyOverrides ++= Seq(
   "com.fasterxml.jackson.core" % "jackson-annotations" % "2.14.3"
 )
 
+
+// // Test performance optimizations
+// Test / fork := true
+// Test / parallelExecution := true
+// Test / testOptions += Tests.Argument("-oDF") // Output to console with full stack traces
+// Test / javaOptions ++= Seq(
+//   "-Xmx1024m",
+//   "-Xms512m",
+//   "-XX:+UseG1GC",
+//   "-XX:MaxGCPauseMillis=100"
+// )
+
+// // Disable database evolutions for tests
+// javaOptions in Test += "-Dplay.evolutions.db.default.enabled=false"
+
+// // Speed up compilation
+// Global / concurrentRestrictions := Seq(
+//   Tags.limit(Tags.CPU, java.lang.Runtime.getRuntime.availableProcessors()),
+//   Tags.limit(Tags.Test, 1),
+//   Tags.limitAll(15)
+// )
 
 // Adds additional packages into Twirl
 //TwirlKeys.templateImports += "com.example.controllers._"
