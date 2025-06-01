@@ -19,6 +19,8 @@ class AuthController @Inject()(
     jwtService: JwtService
 )(implicit ec: ExecutionContext) extends BaseController {
 
+  private val TokenExpirySeconds = 3600 // 1 hour
+
   def login: Action[JsValue] = Action.async(parse.json) { implicit request =>
     request.body.validate[LoginRequest] match {
       case JsSuccess(loginRequest, _) =>
@@ -71,7 +73,7 @@ class AuthController @Inject()(
           Some(AuthResponse(
             accessToken = accessToken,
             refreshToken = refreshToken,
-            expiresIn = 3600, // 1 hour in seconds
+            expiresIn = TokenExpirySeconds,
             user = user
           ))
         } else {
@@ -95,7 +97,7 @@ class AuthController @Inject()(
               AuthResponse(
                 accessToken = newAccessToken,
                 refreshToken = newRefreshToken,
-                expiresIn = 3600, // 1 hour in seconds
+                expiresIn = TokenExpirySeconds,
                 user = user
               )
             }
