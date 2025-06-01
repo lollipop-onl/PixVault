@@ -29,6 +29,12 @@ sbt dist                 # Create production distribution
 ### Testing
 ```bash
 npm run test             # Run all tests (frontend + backend)
+npm run test:backend     # Run backend tests only
+
+# Backend test coverage (requires sbt in PATH)
+cd backend
+sbt clean coverage test coverageReport  # Generate test coverage report
+# Coverage report will be in backend/target/scala-3.7.0/scoverage-report/index.html
 ```
 
 ## Architecture
@@ -55,11 +61,18 @@ The backend follows a clean architecture with repository pattern:
 - Token expiration: 24 hours
 - Refresh token support
 
-### API Endpoints (from OpenAPI spec)
-- `/v1/auth/login` - User authentication
-- `/v1/media/*` - Media CRUD operations (not yet implemented)
-- `/v1/storage/*` - Storage management (not yet implemented)
-- `/v1/jobs/*` - Background job monitoring (not yet implemented)
+### API Endpoints
+All API endpoints use `/v1` prefix. See `docs/openapi.yaml` for full specification.
+
+Implemented:
+- `/v1/health` - Health check endpoint
+- `/v1/auth/login` - User authentication  
+- `/v1/auth/refresh` - Refresh access token
+
+Not yet implemented:
+- `/v1/media/*` - Media CRUD operations
+- `/v1/storage/*` - Storage management
+- `/v1/jobs/*` - Background job monitoring
 
 ## Configuration
 
@@ -74,10 +87,13 @@ Copy `.env.example` to `.env` for local development. Key variables:
 `backend/conf/test.conf` disables evolutions and mocks external services for testing.
 
 ## Current Implementation Status
-- ✅ Authentication system (login endpoint, JWT)
+- ✅ Authentication system (login/refresh endpoints, JWT)
 - ✅ User repository with PostgreSQL
 - ✅ Database schema and migrations
 - ✅ Docker Compose development environment
+- ✅ Health check endpoint
+- ✅ API versioning (all endpoints use `/v1` prefix)
+- ✅ Test coverage setup (scoverage plugin)
 - ⏳ Frontend not yet initialized
 - ⏳ Media upload/storage features
 - ⏳ S3/Glacier integration
