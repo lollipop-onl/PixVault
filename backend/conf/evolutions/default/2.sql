@@ -1,7 +1,7 @@
 # --- !Ups
 
 CREATE TABLE media_items (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     type VARCHAR(10) NOT NULL CHECK (type IN ('photo', 'video')),
     filename VARCHAR(255) NOT NULL,
@@ -41,7 +41,7 @@ CREATE INDEX idx_media_items_storage_status ON media_items(storage_status);
 
 -- Media tags table for many-to-many relationship
 CREATE TABLE media_tags (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     media_id UUID NOT NULL REFERENCES media_items(id) ON DELETE CASCADE,
     tag VARCHAR(100) NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -52,22 +52,8 @@ CREATE TABLE media_tags (
 CREATE INDEX idx_media_tags_tag ON media_tags(tag);
 CREATE INDEX idx_media_tags_media_id ON media_tags(media_id);
 
--- Function to update updated_at timestamp
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = CURRENT_TIMESTAMP;
-    RETURN NEW;
-END;
-$$ language 'plpgsql';
-
--- Trigger to automatically update updated_at
-CREATE TRIGGER update_media_items_updated_at BEFORE UPDATE
-    ON media_items FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 # --- !Downs
 
-DROP TRIGGER IF EXISTS update_media_items_updated_at ON media_items;
-DROP FUNCTION IF EXISTS update_updated_at_column();
 DROP TABLE IF EXISTS media_tags;
 DROP TABLE IF EXISTS media_items;

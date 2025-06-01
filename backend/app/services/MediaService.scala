@@ -177,8 +177,8 @@ class MediaService @Inject()(
       val exifDir = meta.getFirstDirectoryOfType(classOf[ExifIFD0Directory])
       if (exifDir != null && exifDir.containsTag(ExifDirectoryBase.TAG_IMAGE_WIDTH)) {
         Some((
-          Option(exifDir.getInteger(ExifDirectoryBase.TAG_IMAGE_WIDTH)),
-          Option(exifDir.getInteger(ExifDirectoryBase.TAG_IMAGE_HEIGHT))
+          Option(exifDir.getInteger(ExifDirectoryBase.TAG_IMAGE_WIDTH)).map(_.intValue()),
+          Option(exifDir.getInteger(ExifDirectoryBase.TAG_IMAGE_HEIGHT)).map(_.intValue())
         ))
       } else {
         None
@@ -211,7 +211,7 @@ class MediaService @Inject()(
         Some(MediaMetadata(
           camera = Option(exifDir).flatMap(d => Option(d.getString(ExifDirectoryBase.TAG_MODEL))),
           lens = Option(exifDir).flatMap(d => Option(d.getString(ExifDirectoryBase.TAG_LENS_MODEL))),
-          iso = Option(subDir).flatMap(d => Option(d.getInteger(ExifDirectoryBase.TAG_ISO_EQUIVALENT))),
+          iso = Option(subDir).flatMap(d => Option(d.getInteger(ExifDirectoryBase.TAG_ISO_EQUIVALENT))).map(_.intValue()),
           aperture = Option(subDir).flatMap(d => Option(d.getDouble(ExifDirectoryBase.TAG_APERTURE))),
           shutterSpeed = Option(subDir).flatMap(d => Option(d.getString(ExifDirectoryBase.TAG_SHUTTER_SPEED))),
           focalLength = Option(subDir).flatMap(d => Option(d.getDouble(ExifDirectoryBase.TAG_FOCAL_LENGTH)))

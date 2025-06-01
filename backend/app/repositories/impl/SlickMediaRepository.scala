@@ -20,9 +20,10 @@ class SlickMediaRepository @Inject()(
   private val mediaTags = MediaTagTable.query
 
   override def create(mediaItem: MediaItem): Future[MediaItem] = {
+    val mediaRow = MediaItemRow.fromMediaItem(mediaItem)
     val action = for {
       // Insert media item
-      _ <- mediaItems += mediaItem
+      _ <- mediaItems += mediaRow
       // Insert tags if any
       _ <- if (mediaItem.tags.nonEmpty) {
         mediaTags ++= mediaItem.tags.map(tag => (UUID.randomUUID(), mediaItem.id, tag))
@@ -38,7 +39,7 @@ class SlickMediaRepository @Inject()(
     val query = for {
       item <- mediaItems.filter(_.id === id).result.headOption
       tags <- mediaTags.filter(_.mediaId === id).map(_.tagValue).result
-    } yield item.map(_.copy(tags = tags.toList))
+    } yield item.map(row => row.toMediaItem.copy(tags = tags.toList))
 
     db.run(query)
   }
@@ -57,8 +58,8 @@ class SlickMediaRepository @Inject()(
         .filter(_.mediaId inSet itemIds)
         .result
         .map(_.groupBy(_._2).view.mapValues(_.map(_._3).toList).toMap)
-    } yield items.map { item =>
-      item.copy(tags = tagsMap.getOrElse(item.id, List.empty))
+    } yield items.map { row =>
+      row.toMediaItem.copy(tags = tagsMap.getOrElse(row.id, List.empty))
     }
 
     db.run(query)
@@ -68,18 +69,19 @@ class SlickMediaRepository @Inject()(
     val query = for {
       item <- mediaItems.filter(_.fileHash === fileHash).result.headOption
       tags <- item match {
-        case Some(mediaItem) => mediaTags.filter(_.mediaId === mediaItem.id).map(_.tagValue).result
+        case Some(mediaRow) => mediaTags.filter(_.mediaId === mediaRow.id).map(_.tagValue).result
         case None => DBIO.successful(Seq.empty)
       }
-    } yield item.map(_.copy(tags = tags.toList))
+    } yield item.map(row => row.toMediaItem.copy(tags = tags.toList))
 
     db.run(query)
   }
 
   override def update(mediaItem: MediaItem): Future[Option[MediaItem]] = {
+    val mediaRow = MediaItemRow.fromMediaItem(mediaItem)
     val action = for {
       // Update media item
-      updateCount <- mediaItems.filter(_.id === mediaItem.id).update(mediaItem)
+      updateCount <- mediaItems.filter(_.id === mediaItem.id).update(mediaRow)
       // Delete existing tags and insert new ones
       _ <- mediaTags.filter(_.mediaId === mediaItem.id).delete
       _ <- if (mediaItem.tags.nonEmpty) {
