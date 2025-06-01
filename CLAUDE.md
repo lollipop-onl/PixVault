@@ -1,252 +1,252 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+このファイルは、このリポジトリでコードを扱う際のClaude Code (claude.ai/code) へのガイダンスを提供します。
 
-## Project Overview
+## プロジェクト概要
 
-PixVault is a low-cost photo and video storage solution using AWS S3 Glacier as an alternative to Google Photos and iCloud. The project uses a monorepo structure with Scala/Play Framework backend and planned React/TypeScript frontend.
+PixVaultは、Google PhotosやiCloudの代替として、AWS S3 Glacierを使用した低コストの写真・動画ストレージソリューションです。プロジェクトはScala/Play Frameworkバックエンドと計画中のReact/TypeScriptフロントエンドを持つモノレポ構造を使用しています。
 
-## Key Commands
+## 主要コマンド
 
-### Development
+### 開発
 ```bash
-npm run dev              # Start Docker services + run frontend & backend
-npm run dev:backend      # Run backend only (cd backend && sbt run)
-npm run docker:up        # Start PostgreSQL, LocalStack, and MinIO
-npm run docker:down      # Stop all Docker services
-npm run db:shell         # Connect to PostgreSQL shell
+npm run dev              # Dockerサービスを起動 + フロントエンドとバックエンドを実行
+npm run dev:backend      # バックエンドのみ実行 (cd backend && sbt run)
+npm run docker:up        # PostgreSQL、LocalStack、MinIOを起動
+npm run docker:down      # すべてのDockerサービスを停止
+npm run db:shell         # PostgreSQLシェルに接続
 ```
 
-### Backend (Scala/Play)
+### バックエンド (Scala/Play)
 ```bash
 cd backend
-sbt run                  # Run application on http://localhost:9000
-sbt test                 # Run all tests
-sbt "testOnly *AuthControllerSpec"  # Run specific test
-sbt dist                 # Create production distribution
+sbt run                  # アプリケーションを http://localhost:9000 で実行
+sbt test                 # すべてのテストを実行
+sbt "testOnly *AuthControllerSpec"  # 特定のテストを実行
+sbt dist                 # プロダクション用ディストリビューションを作成
 ```
 
-### Testing
+### テスト
 ```bash
-npm run test             # Run all tests (frontend + backend)
-npm run test:backend     # Run backend tests only
+npm run test             # すべてのテストを実行 (フロントエンド + バックエンド)
+npm run test:backend     # バックエンドのテストのみ実行
 
-# Backend test coverage (requires sbt in PATH)
+# バックエンドのテストカバレッジ (PATHにsbtが必要)
 cd backend
-sbt clean coverage test coverageReport  # Generate test coverage report
-# Coverage report will be in backend/target/scala-3.7.0/scoverage-report/index.html
+sbt clean coverage test coverageReport  # テストカバレッジレポートを生成
+# カバレッジレポートは backend/target/scala-3.7.0/scoverage-report/index.html にあります
 ```
 
-## Architecture
+## アーキテクチャ
 
-### Backend Structure
-The backend follows a clean architecture with repository pattern:
-- **Controllers**: HTTP request handlers in `app/controllers/`
-- **Services**: Business logic (e.g., `PasswordService` for BCrypt, JWT service for tokens)
-- **Repositories**: Data access layer with trait/implementation pattern
-  - `UserRepository` trait defines interface
-  - `SlickUserRepository` provides PostgreSQL implementation
-- **Models**: Domain entities and database table mappings
-- **Dependency Injection**: Guice modules for wiring components
+### バックエンド構造
+バックエンドはリポジトリパターンを使用したクリーンアーキテクチャに従っています：
+- **Controllers**: `app/controllers/` 内のHTTPリクエストハンドラー
+- **Services**: ビジネスロジック（例：BCrypt用の `PasswordService`、トークン用のJWTサービス）
+- **Repositories**: trait/実装パターンを使用したデータアクセス層
+  - `UserRepository` traitがインターフェースを定義
+  - `SlickUserRepository` がPostgreSQL実装を提供
+- **Models**: ドメインエンティティとデータベーステーブルマッピング
+- **Dependency Injection**: コンポーネントの配線用Guiceモジュール
 
-### Database
-- PostgreSQL with UUID primary keys
-- Play Evolutions for schema migrations (auto-applied in dev mode)
-- Evolution files in `backend/conf/evolutions/default/`
-- Test user: `tanaka.yuki@example.com` / `SecurePass123!`
+### データベース
+- UUID主キーを使用したPostgreSQL
+- スキーママイグレーション用のPlay Evolutions（開発モードで自動適用）
+- Evolutionファイルは `backend/conf/evolutions/default/` にあります
+- テストユーザー: `tanaka.yuki@example.com` / `SecurePass123!`
 
-### Authentication
-- JWT-based authentication with HS256 algorithm
-- BCrypt password hashing (10 rounds in production, 4 in tests)
-- Token expiration: 24 hours
-- Refresh token support
+### 認証
+- HS256アルゴリズムを使用したJWTベース認証
+- BCryptパスワードハッシュ（本番環境で10ラウンド、テストで4ラウンド）
+- トークン有効期限: 24時間
+- リフレッシュトークンサポート
 
-### API Endpoints
-All API endpoints use `/v1` prefix. See `docs/openapi.yaml` for full specification.
+### APIエンドポイント
+すべてのAPIエンドポイントは `/v1` プレフィックスを使用します。完全な仕様は `docs/openapi.yaml` を参照してください。
 
-Implemented:
-- `/v1/health` - Health check endpoint
-- `/v1/auth/login` - User authentication  
-- `/v1/auth/refresh` - Refresh access token
+実装済み:
+- `/v1/health` - ヘルスチェックエンドポイント
+- `/v1/auth/login` - ユーザー認証
+- `/v1/auth/refresh` - アクセストークンをリフレッシュ
 
-Not yet implemented:
-- `/v1/media/*` - Media CRUD operations
-- `/v1/storage/*` - Storage management
-- `/v1/jobs/*` - Background job monitoring
+未実装:
+- `/v1/media/*` - メディアCRUD操作
+- `/v1/storage/*` - ストレージ管理
+- `/v1/jobs/*` - バックグラウンドジョブ監視
 
-## Configuration
+## 設定
 
-### Environment Variables
-Copy `.env.example` to `.env` for local development. Key variables:
-- `DB_*` - PostgreSQL connection settings
-- `JWT_SECRET` - JWT signing secret
-- `AWS_*` - AWS/LocalStack credentials
-- `S3_BUCKET` - MinIO/S3 bucket name
+### 環境変数
+ローカル開発用に `.env.example` を `.env` にコピーしてください。主要な変数:
+- `DB_*` - PostgreSQL接続設定
+- `JWT_SECRET` - JWT署名シークレット
+- `AWS_*` - AWS/LocalStackクレデンシャル
+- `S3_BUCKET` - MinIO/S3バケット名
 
-### Test Configuration
-`backend/conf/test.conf` disables evolutions and mocks external services for testing.
+### テスト設定
+`backend/conf/test.conf` はEvolutionsを無効化し、テスト用に外部サービスをモックします。
 
-## Current Implementation Status
-- ✅ Authentication system (login/refresh endpoints, JWT)
-- ✅ User repository with PostgreSQL
-- ✅ Database schema and migrations
-- ✅ Docker Compose development environment
-- ✅ Health check endpoint
-- ✅ API versioning (all endpoints use `/v1` prefix)
-- ✅ Test coverage setup (scoverage plugin)
-- ⏳ Frontend not yet initialized
-- ⏳ Media upload/storage features
-- ⏳ S3/Glacier integration
-- ⏳ Background job processing
+## 現在の実装状況
+- ✅ 認証システム (login/refreshエンドポイント、JWT)
+- ✅ PostgreSQLを使用したユーザーリポジトリ
+- ✅ データベーススキーマとマイグレーション
+- ✅ Docker Compose開発環境
+- ✅ ヘルスチェックエンドポイント
+- ✅ APIバージョニング (すべてのエンドポイントが `/v1` プレフィックスを使用)
+- ✅ テストカバレッジ設定 (scoverageプラグイン)
+- ⏳ フロントエンドは未初期化
+- ⏳ メディアアップロード/ストレージ機能
+- ⏳ S3/Glacier統合
+- ⏳ バックグラウンドジョブ処理
 
-## Media API Implementation Plan
+## Media API実装計画
 
-### Phase 1: Data Layer (High Priority)
-1. **MediaItem Model** (`backend/app/models/MediaItem.scala`)
-   - Core media entity with UUID primary key
-   - Support for photos and videos
-   - File hash (SHA-256) for duplicate detection
-   - Metadata fields (EXIF, location, tags)
-   - Storage status tracking (ACTIVE, ARCHIVING, ARCHIVED, RESTORING)
+### フェーズ1: データ層 (高優先度)
+1. **MediaItemモデル** (`backend/app/models/MediaItem.scala`)
+   - UUID主キーを持つコアメディアエンティティ
+   - 写真と動画のサポート
+   - 重複検出用のファイルハッシュ (SHA-256)
+   - メタデータフィールド (EXIF、位置情報、タグ)
+   - ストレージステータス追跡 (ACTIVE、ARCHIVING、ARCHIVED、RESTORING)
 
-2. **Database Schema** (`backend/conf/evolutions/default/2.sql`)
-   - `media_items` table with comprehensive metadata
-   - `media_tags` junction table for tag relationships
-   - Unique index on `file_hash` for duplicate prevention
-   - Indexes on userId, type, uploadedAt for performance
+2. **データベーススキーマ** (`backend/conf/evolutions/default/2.sql`)
+   - 包括的なメタデータを持つ `media_items` テーブル
+   - タグ関係用の `media_tags` ジャンクションテーブル
+   - 重複防止用の `file_hash` へのユニークインデックス
+   - パフォーマンス用のuserId、type、uploadedAtへのインデックス
 
 3. **MediaRepository** (`backend/app/repositories/MediaRepository.scala`)
-   - CRUD operations following existing UserRepository pattern
-   - Advanced filtering (type, date range, tags, storage status)
-   - Pagination support for large media libraries
-   - Duplicate checking by file hash (`findByHash` method)
-   - Slick implementation (`backend/app/repositories/impl/SlickMediaRepository.scala`)
+   - 既存のUserRepositoryパターンに従ったCRUD操作
+   - 高度なフィルタリング (タイプ、日付範囲、タグ、ストレージステータス)
+   - 大規模メディアライブラリ用のページネーションサポート
+   - ファイルハッシュによる重複チェック (`findByHash` メソッド)
+   - Slick実装 (`backend/app/repositories/impl/SlickMediaRepository.scala`)
 
-### Phase 2: Service Layer (Medium Priority)
+### フェーズ2: サービス層 (中優先度)
 4. **MediaService** (`backend/app/services/MediaService.scala`)
-   - File upload processing and validation
-   - SHA-256 hash calculation during upload
-   - Duplicate file detection before S3 upload
-   - Metadata extraction (EXIF for photos, duration for videos)
-   - Thumbnail and preview generation
-   - Integration with StorageService for S3 operations
+   - ファイルアップロード処理と検証
+   - アップロード中のSHA-256ハッシュ計算
+   - S3アップロード前の重複ファイル検出
+   - メタデータ抽出 (写真用EXIF、動画用duration)
+   - サムネイルとプレビュー生成
+   - S3操作用のStorageServiceとの統合
 
 5. **StorageService** (`backend/app/services/StorageService.scala`)
-   - S3/MinIO file operations
-   - Presigned URL generation for secure downloads
-   - Glacier archiving and restoration workflows
-   - Storage class management (STANDARD → GLACIER → DEEP_ARCHIVE)
+   - S3/MinIOファイル操作
+   - セキュアダウンロード用のプリサインドURL生成
+   - Glacierアーカイブと復元ワークフロー
+   - ストレージクラス管理 (STANDARD → GLACIER → DEEP_ARCHIVE)
 
 6. **MetadataExtractorService** (`backend/app/services/MetadataExtractorService.scala`)
-   - EXIF data extraction from images
-   - Video metadata extraction (duration, resolution, codec)
-   - GPS coordinate processing
-   - Camera and lens information parsing
+   - 画像からのEXIFデータ抽出
+   - 動画メタデータ抽出 (duration、解像度、コーデック)
+   - GPS座標処理
+   - カメラとレンズ情報の解析
 
-### Phase 3: Controller Layer (Medium Priority)
+### フェーズ3: コントローラー層 (中優先度)
 7. **MediaController** (`backend/app/controllers/MediaController.scala`)
-   - `GET /v1/media` - List media with filtering and pagination
-   - `POST /v1/media` - Upload new media files (single)
-   - `POST /v1/media/batch` - Batch upload (Phase 1: parallel calls, Phase 2: ZIP processing)
-   - `GET /v1/media/:id` - Get specific media details
-   - `PUT /v1/media/:id` - Update media metadata
-   - `DELETE /v1/media/:id` - Delete media
-   - `GET /v1/media/:id/download` - Download with quality options
-   - `POST /v1/media/:id/archive` - Archive to Glacier
-   - `POST /v1/media/:id/restore` - Restore from Glacier
+   - `GET /v1/media` - フィルタリングとページネーションを含むメディア一覧
+   - `POST /v1/media` - 新しいメディアファイルをアップロード (単一)
+   - `POST /v1/media/batch` - バッチアップロード (フェーズ1: 並列呼び出し、フェーズ2: ZIP処理)
+   - `GET /v1/media/:id` - 特定のメディア詳細を取得
+   - `PUT /v1/media/:id` - メディアメタデータを更新
+   - `DELETE /v1/media/:id` - メディアを削除
+   - `GET /v1/media/:id/download` - 品質オプション付きダウンロード
+   - `POST /v1/media/:id/archive` - Glacierへアーカイブ
+   - `POST /v1/media/:id/restore` - Glacierから復元
 
-8. **File Upload Handling**
-   - Multipart form processing for large files (up to 50GB)
-   - File type validation:
-     - Images: JPEG, PNG, HEIC, HEIF, TIFF, BMP
-     - RAW formats: CR2, NEF, ARW, RAF, ORF, DNG, etc.
-     - Videos: MP4, MOV, AVI, MKV (including 4K/8K resolution)
-   - SHA-256 hash calculation on upload stream (0.5-4 seconds per GB)
-   - Duplicate detection workflow:
-     1. Calculate file hash during upload
-     2. Check database for existing hash
-     3. If duplicate exists, return existing media metadata
-     4. If new, proceed with S3 upload and metadata processing
-   - Size limits: 50GB maximum per file
-   - Temporary file management with streaming processing
+8. **ファイルアップロード処理**
+   - 大容量ファイル用のマルチパート処理 (最大50GB)
+   - ファイルタイプ検証:
+     - 画像: JPEG、PNG、HEIC、HEIF、TIFF、BMP
+     - RAWフォーマット: CR2、NEF、ARW、RAF、ORF、DNG等
+     - 動画: MP4、MOV、AVI、MKV (4K/8K解像度を含む)
+   - アップロードストリーム上でのSHA-256ハッシュ計算 (GB当たり0.5-4秒)
+   - 重複検出ワークフロー:
+     1. アップロード中にファイルハッシュを計算
+     2. データベースで既存のハッシュをチェック
+     3. 重複が存在する場合、既存のメディアメタデータを返す
+     4. 新規の場合、S3アップロードとメタデータ処理に進む
+   - サイズ制限: ファイル当たり最大50GB
+   - ストリーミング処理による一時ファイル管理
 
-### Phase 4: Additional Features (Low Priority)
-9. **Background Job System**
-   - Job models for async operations (archiving, thumbnail generation, batch processing)
-   - JobController for monitoring background tasks (`GET /v1/jobs/:id`)
-   - Integration with Play's actor system or external queue
-   - Batch upload ZIP processing with progress tracking
+### フェーズ4: 追加機能 (低優先度)
+9. **バックグラウンドジョブシステム**
+   - 非同期操作用のジョブモデル (アーカイブ、サムネイル生成、バッチ処理)
+   - バックグラウンドタスク監視用のJobController (`GET /v1/jobs/:id`)
+   - Playのアクターシステムまたは外部キューとの統合
+   - 進捗追跡付きバッチアップロードZIP処理
 
-10. **Upload Progress & Monitoring**
-    - Streaming upload progress for frontend
-    - WebSocket or Server-Sent Events for real-time updates
-    - Polling endpoint for batch upload progress
-    - Upload resumption handling via hash-based duplicate detection
+10. **アップロード進捗と監視**
+    - フロントエンド用のストリーミングアップロード進捗
+    - リアルタイム更新用のWebSocketまたはServer-Sent Events
+    - バッチアップロード進捗用のポーリングエンドポイント
+    - ハッシュベースの重複検出によるアップロード再開処理
 
-11. **Advanced Search & Metadata**
-    - Full-text search across descriptions and tags
-    - GPS-based location search (radius queries)
-    - Camera equipment filtering (brand, model, lens)
-    - Date range queries with timezone support
-    - EXIF metadata search (ISO, aperture, shutter speed)
+11. **高度な検索とメタデータ**
+    - 説明とタグ全体の全文検索
+    - GPSベースの位置検索 (半径クエリ)
+    - カメラ機器フィルタリング (ブランド、モデル、レンズ)
+    - タイムゾーンサポート付き日付範囲クエリ
+    - EXIFメタデータ検索 (ISO、絞り、シャッタースピード)
 
-12. **Testing Strategy**
-    - Unit tests for all services and repositories
-    - Integration tests for file upload/download flows
-    - Mock S3 service for testing without external dependencies
-    - Performance tests for large file operations (up to 50GB)
-    - Load testing for concurrent uploads
+12. **テスト戦略**
+    - すべてのサービスとリポジトリのユニットテスト
+    - ファイルアップロード/ダウンロードフローの統合テスト
+    - 外部依存関係なしのテスト用モックS3サービス
+    - 大容量ファイル操作のパフォーマンステスト (最大50GB)
+    - 同時アップロードのロードテスト
 
-### Implementation Dependencies
-**Required SBT Dependencies** (add to `backend/build.sbt`):
+### 実装依存関係
+**必要なSBT依存関係** (`backend/build.sbt` に追加):
 ```scala
-// AWS SDK for S3 operations
+// S3操作用AWS SDK
 "software.amazon.awssdk" % "s3" % "2.21.29",
 "software.amazon.awssdk" % "glacier" % "2.21.29",
 
-// Image processing and metadata extraction
+// 画像処理とメタデータ抽出
 "org.apache.commons" % "commons-imaging" % "1.0.0-alpha5",
 "com.drewnoakes" % "metadata-extractor" % "2.18.0",
 
-// File type detection
+// ファイルタイプ検出
 "org.apache.tika" % "tika-core" % "2.9.1",
 
-// Thumbnail generation
+// サムネイル生成
 "net.coobird" % "thumbnailator" % "0.4.19",
 
-// File hashing for duplicate detection
+// 重複検出用ファイルハッシング
 "commons-codec" % "commons-codec" % "1.16.0",
 
-// Video metadata extraction
+// 動画メタデータ抽出
 "org.bytedeco" % "ffmpeg-platform" % "6.0-1.5.9"
 ```
 
-### File Storage Structure
+### ファイルストレージ構造
 ```
 s3://pixvault-media/
 ├── users/{userId}/
 │   └── media/{mediaId}/
-│       ├── original.{ext}     # Original file (up to 50GB)
-│       ├── preview.{ext}      # Web-optimized version
-│       └── thumbnail.webp     # WebP thumbnail (200x200)
-└── batch/{batchId}/           # Temporary ZIP files for batch processing
+│       ├── original.{ext}     # オリジナルファイル (最大50GB)
+│       ├── preview.{ext}      # Web最適化版
+│       └── thumbnail.webp     # WebPサムネイル (200x200)
+└── batch/{batchId}/           # バッチ処理用一時ZIPファイル
     └── upload.zip
 ```
 
-### S3 Lifecycle Configuration
+### S3ライフサイクル設定
 ```yaml
-# Automatic storage class transitions
+# 自動ストレージクラス遷移
 Rules:
   - Id: "MediaLifecycle"
     Status: Enabled
     Filter:
       Prefix: "users/"
     Transitions:
-      - Days: 30          # Standard to Standard-IA
+      - Days: 30          # Standard → Standard-IA
         StorageClass: STANDARD_IA
-      - Days: 90          # Standard-IA to Glacier
+      - Days: 90          # Standard-IA → Glacier
         StorageClass: GLACIER  
-      - Days: 365         # Glacier to Deep Archive
+      - Days: 365         # Glacier → Deep Archive
         StorageClass: DEEP_ARCHIVE
     
   - Id: "BatchCleanup"
@@ -254,41 +254,41 @@ Rules:
     Filter:
       Prefix: "batch/"
     Expiration:
-      Days: 7             # Auto-delete batch files after 7 days
+      Days: 7             # 7日後にバッチファイルを自動削除
 ```
 
-### Implementation Order
-1. Models and database schema with hash field (Phase 1: items 1-2)
-2. Repository layer with duplicate checking (Phase 1: item 3)
-3. Core services with hash calculation (Phase 2: items 4-5)
-4. Basic CRUD endpoints with duplicate detection (Phase 3: item 7)
-   - **Efficient CRUD Implementation Order:**
-     1. `POST /v1/media` - CREATE (most complex, includes file handling)
-     2. `GET /v1/media/:id` - READ single (verify created data)
-     3. `GET /v1/media` - READ list (pagination, filtering)
-     4. `PUT /v1/media/:id` - UPDATE (metadata only, simpler)
-     5. `DELETE /v1/media/:id` - DELETE (last to minimize risk)
-5. File processing services (Phase 2: item 6)
-6. Advanced endpoints (Phase 3: item 7 - download, archive, restore)
-7. Background jobs and monitoring (Phase 4)
+### 実装順序
+1. ハッシュフィールドを含むモデルとデータベーススキーマ (フェーズ1: 項目1-2)
+2. 重複チェックを含むリポジトリ層 (フェーズ1: 項目3)
+3. ハッシュ計算を含むコアサービス (フェーズ2: 項目4-5)
+4. 重複検出を含む基本的なCRUDエンドポイント (フェーズ3: 項目7)
+   - **効率的なCRUD実装順序:**
+     1. `POST /v1/media` - CREATE (最も複雑、ファイル処理を含む)
+     2. `GET /v1/media/:id` - READ single (作成されたデータを確認)
+     3. `GET /v1/media` - READ list (ページネーション、フィルタリング)
+     4. `PUT /v1/media/:id` - UPDATE (メタデータのみ、より単純)
+     5. `DELETE /v1/media/:id` - DELETE (リスクを最小化するため最後)
+5. ファイル処理サービス (フェーズ2: 項目6)
+6. 高度なエンドポイント (フェーズ3: 項目7 - download、archive、restore)
+7. バックグラウンドジョブと監視 (フェーズ4)
 
-### Duplicate Detection Benefits
-- **Storage Cost Reduction**: Eliminates redundant S3 storage costs
-- **Upload Performance**: Instant response for duplicate files (no S3 upload needed)
-- **Bandwidth Savings**: Reduces network traffic for duplicate uploads
-- **User Experience**: Fast upload completion for already-stored files
-- **Data Deduplication**: Efficient storage utilization across all users
+### 重複検出のメリット
+- **ストレージコスト削減**: 冗長なS3ストレージコストを排除
+- **アップロードパフォーマンス**: 重複ファイルに対する即座のレスポンス (S3アップロード不要)
+- **帯域幅節約**: 重複アップロードのネットワークトラフィックを削減
+- **ユーザー体験**: 既に保存されているファイルの高速アップロード完了
+- **データ重複排除**: すべてのユーザー間での効率的なストレージ利用
 
-### Future AI Features Preparation
-**Database Schema Extensions** (add when needed):
+### 将来のAI機能の準備
+**データベーススキーマ拡張** (必要時に追加):
 ```sql
--- AI analysis results
+-- AI分析結果
 ALTER TABLE media_items ADD COLUMN ai_tags JSONB;
 ALTER TABLE media_items ADD COLUMN face_embeddings JSONB;
 ALTER TABLE media_items ADD COLUMN object_detection JSONB;
 ALTER TABLE media_items ADD COLUMN analyzed_at TIMESTAMP;
 
--- AI processing queue
+-- AI処理キュー
 CREATE TABLE ai_analysis_jobs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   media_id UUID REFERENCES media_items(id),
@@ -299,45 +299,45 @@ CREATE TABLE ai_analysis_jobs (
 );
 ```
 
-**Service Architecture Preparation**:
-- `AIAnalysisService` interface for future ML integration
-- Async processing queue for computationally expensive operations
-- Webhook endpoints for external AI service callbacks
+**サービスアーキテクチャの準備**:
+- 将来のML統合用の `AIAnalysisService` インターフェース
+- 計算コストの高い操作用の非同期処理キュー
+- 外部AIサービスコールバック用のWebhookエンドポイント
 
-### Performance Configuration for Large Files
-**Application Settings** (`backend/conf/application.conf`):
+### 大容量ファイル用のパフォーマンス設定
+**アプリケーション設定** (`backend/conf/application.conf`):
 ```scala
-# Large file upload settings
+# 大容量ファイルアップロード設定
 play.http.parser.maxMemoryBuffer = 128MB
 play.http.parser.maxDiskBuffer = 50GB
-play.server.http.idleTimeout = 1800s      # 30 minutes
+play.server.http.idleTimeout = 1800s      # 30分
 play.server.akka.requestTimeout = 1800s
 
-# Streaming settings
+# ストリーミング設定
 akka.http.server.parsing.max-content-length = 50GB
 akka.http.server.request-timeout = 1800s
 
-# Database connection pool
+# データベース接続プール
 play.db.default.hikaricp.maximumPoolSize = 20
 play.db.default.hikaricp.minimumIdle = 5
 
-## Development Tips
-- The backend uses Play Framework's hot reload - changes are applied automatically
-- Database migrations run automatically in dev mode
-- Use Bruno API client in `api-client/` for testing endpoints
-- Check `backend/logs/application.log` for detailed logs
+## 開発のヒント
+- バックエンドはPlay Frameworkのホットリロードを使用 - 変更は自動的に適用されます
+- データベースマイグレーションは開発モードで自動的に実行されます
+- エンドポイントのテストには `api-client/` のBruno APIクライアントを使用
+- 詳細なログは `backend/logs/application.log` を確認
 
-## Git Commit Message Convention
-Follow the Conventional Commits specification:
-- `feat:` New feature
-- `fix:` Bug fix
-- `docs:` Documentation changes
-- `style:` Code style changes (formatting, missing semicolons, etc.)
-- `refactor:` Code refactoring
-- `test:` Adding or updating tests
-- `chore:` Maintenance tasks, dependency updates
+## Gitコミットメッセージ規約
+Conventional Commits仕様に従ってください:
+- `feat:` 新機能
+- `fix:` バグ修正
+- `docs:` ドキュメント変更
+- `style:` コードスタイル変更 (フォーマット、セミコロンの欠落など)
+- `refactor:` コードリファクタリング
+- `test:` テストの追加または更新
+- `chore:` メンテナンスタスク、依存関係の更新
 
-Examples:
+例:
 - `feat: add user profile image upload`
 - `fix: resolve JWT token expiration issue`
 - `docs: update API documentation for media endpoints`
