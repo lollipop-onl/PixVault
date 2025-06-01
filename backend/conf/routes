@@ -6,6 +6,9 @@
 # Health check
 GET     /health                     controllers.HealthController.health
 
+# Authentication
+POST    /api/auth/login             controllers.AuthController.login
+
 # Home page
 GET     /                           controllers.HomeController.index
 

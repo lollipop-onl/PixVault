@@ -1,0 +1,80 @@
+meta {
+  name: Login
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/auth/login
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "tanaka.yuki@example.com",
+    "password": "SecurePass123!"
+  }
+}
+
+docs {
+  # User Login
+  
+  ユーザーのログインを行います。
+  
+  ## Request Body
+  
+  - `email` (required) - ユーザーのメールアドレス
+  - `password` (required) - ユーザーのパスワード
+  
+  ## Response
+  
+  成功時:
+  - `accessToken` - アクセストークン
+  - `refreshToken` - リフレッシュトークン
+  - `expiresIn` - アクセストークンの有効期限（秒）
+  - `user` - ユーザー情報
+  
+  ## Example
+  
+  ```json
+  {
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "expiresIn": 3600,
+    "user": {
+      "id": "7f2a4b8e-1234-5678-90ab-cdef12345678",
+      "email": "tanaka.yuki@example.com",
+      "name": "田中 由紀",
+      "createdAt": "2023-01-15T08:00:00.000Z",
+      "storageQuota": 107374182400,
+      "storageUsed": 45678901234
+    }
+  }
+  ```
+}
+
+tests {
+  test("Status code is 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Response has authentication tokens", function() {
+    const body = res.getBody();
+    expect(body).to.have.property('accessToken');
+    expect(body).to.have.property('refreshToken');
+    expect(body).to.have.property('expiresIn');
+    expect(body).to.have.property('user');
+  });
+  
+  test("Save tokens to variables", function() {
+    const body = res.getBody();
+    bru.setVar("accessToken", body.accessToken);
+    bru.setVar("refreshToken", body.refreshToken);
+    bru.setVar("userId", body.user.id);
+  });
+}

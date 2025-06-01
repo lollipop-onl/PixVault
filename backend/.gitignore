@@ -8,3 +8,10 @@ target
 /.settings
 /RUNNING_PID
 .DS_Store
+
+# Scala Metals and Build Tools
+.metals/
+.bloop/
+project/.bloop/
+project/metals.sbt
+project/project/
