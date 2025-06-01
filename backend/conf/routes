@@ -10,6 +10,13 @@ GET     /v1/health                  controllers.HealthController.health
 POST    /v1/auth/login              controllers.AuthController.login
 POST    /v1/auth/refresh            controllers.AuthController.refresh
 
+# Media
+GET     /v1/media                   controllers.MediaController.listMedia
+POST    /v1/media                   controllers.MediaController.upload
+GET     /v1/media/:id               controllers.MediaController.getMedia(id: String)
+PUT     /v1/media/:id               controllers.MediaController.updateMedia(id: String)
+DELETE  /v1/media/:id               controllers.MediaController.deleteMedia(id: String)
+
 # Home page
 GET     /                           controllers.HomeController.index
 

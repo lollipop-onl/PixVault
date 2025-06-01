@@ -19,9 +19,20 @@ libraryDependencies ++= Seq(
   "com.typesafe.play" %% "play-json" % "2.10.3",
   // AWS SDK for S3 (MinIO compatible)
   "com.amazonaws" % "aws-java-sdk-s3" % "1.12.590",
+  // AWS SDK v2 for better performance
+  "software.amazon.awssdk" % "s3" % "2.21.29",
+  "software.amazon.awssdk" % "glacier" % "2.21.29",
   // Image processing
   "com.sksamuel.scrimage" % "scrimage-core" % "4.0.32",
   "com.sksamuel.scrimage" % "scrimage-formats-extra" % "4.0.32",
+  // Metadata extraction
+  "com.drewnoakes" % "metadata-extractor" % "2.18.0",
+  // File type detection
+  "org.apache.tika" % "tika-core" % "2.9.1",
+  // Thumbnail generation
+  "net.coobird" % "thumbnailator" % "0.4.19",
+  // File hashing
+  "commons-codec" % "commons-codec" % "1.16.0",
   // Database migrations
   "org.flywaydb" % "flyway-core" % "10.4.1",
   "org.flywaydb" % "flyway-database-postgresql" % "10.4.1",
