@@ -1,0 +1,9 @@
+# Bruno
+.bruno/
+*.local.bru
+environments/*.local.bru
+
+# Environment secrets
+.env
+.env.local
+.env.*.local
