@@ -13,6 +13,7 @@ import repositories.{UserRepository, UserWithPassword}
 import services.{PasswordService, JwtService}
 import scala.concurrent.{Future, ExecutionContext}
 import java.time.Instant
+import java.util.UUID
 import org.mockito.Mockito._
 import org.mockito.ArgumentMatchers._
 import org.scalatestplus.mockito.MockitoSugar
@@ -204,6 +205,127 @@ class AuthControllerSpec extends PlaySpec with GuiceOneAppPerTest with MockitoSu
       
       val json = contentAsJson(result)
       (json \ "error").as[String] mustBe "Invalid credentials"
+    }
+  }
+
+  "AuthController refresh" should {
+
+    "return 200 OK with new tokens for valid refresh token" in {
+      val mockUserRepository = app.injector.instanceOf[UserRepository]
+      val mockJwtService = app.injector.instanceOf[JwtService]
+      val testUser = createTestUser
+      val userId = testUser.id
+      val userUuid = UUID.fromString(userId)
+      val validRefreshToken = "valid.refresh.token"
+      val newAccessToken = "new.access.token"
+      val newRefreshToken = "new.refresh.token"
+
+      when(mockJwtService.isRefreshToken(validRefreshToken)).thenReturn(true)
+      when(mockJwtService.extractUserId(validRefreshToken)).thenReturn(Some(userId))
+      when(mockJwtService.generateAccessToken(userId, testUser.email)).thenReturn(newAccessToken)
+      when(mockJwtService.generateRefreshToken(userId)).thenReturn(newRefreshToken)
+      when(mockUserRepository.findById(userUuid)).thenReturn(Future.successful(Some(testUser)))
+
+      val request = FakeRequest(POST, "/api/auth/refresh")
+        .withJsonBody(Json.obj("refreshToken" -> validRefreshToken))
+
+      val result = route(app, request).get
+
+      status(result) mustBe OK
+      contentType(result) mustBe Some("application/json")
+      
+      val json = contentAsJson(result)
+      (json \ "accessToken").as[String] mustBe newAccessToken
+      (json \ "refreshToken").as[String] mustBe newRefreshToken
+      (json \ "expiresIn").as[Int] mustBe 3600
+      (json \ "user" \ "email").as[String] mustBe testUser.email
+    }
+
+    "return 401 Unauthorized for invalid refresh token type" in {
+      val mockJwtService = app.injector.instanceOf[JwtService]
+      val invalidRefreshToken = "invalid.refresh.token"
+
+      when(mockJwtService.isRefreshToken(invalidRefreshToken)).thenReturn(false)
+
+      val request = FakeRequest(POST, "/api/auth/refresh")
+        .withJsonBody(Json.obj("refreshToken" -> invalidRefreshToken))
+
+      val result = route(app, request).get
+
+      status(result) mustBe UNAUTHORIZED
+      contentType(result) mustBe Some("application/json")
+      
+      val json = contentAsJson(result)
+      (json \ "error").as[String] mustBe "Invalid refresh token"
+    }
+
+    "return 401 Unauthorized when user not found" in {
+      val mockUserRepository = app.injector.instanceOf[UserRepository]
+      val mockJwtService = app.injector.instanceOf[JwtService]
+      val userId = UUID.randomUUID().toString
+      val userUuid = UUID.fromString(userId)
+      val validRefreshToken = "valid.refresh.token"
+
+      when(mockJwtService.isRefreshToken(validRefreshToken)).thenReturn(true)
+      when(mockJwtService.extractUserId(validRefreshToken)).thenReturn(Some(userId))
+      when(mockUserRepository.findById(userUuid)).thenReturn(Future.successful(None))
+
+      val request = FakeRequest(POST, "/api/auth/refresh")
+        .withJsonBody(Json.obj("refreshToken" -> validRefreshToken))
+
+      val result = route(app, request).get
+
+      status(result) mustBe UNAUTHORIZED
+      contentType(result) mustBe Some("application/json")
+      
+      val json = contentAsJson(result)
+      (json \ "error").as[String] mustBe "Invalid refresh token"
+    }
+
+    "return 401 Unauthorized when userId cannot be extracted from token" in {
+      val mockJwtService = app.injector.instanceOf[JwtService]
+      val validRefreshToken = "valid.refresh.token.no.userid"
+
+      when(mockJwtService.isRefreshToken(validRefreshToken)).thenReturn(true)
+      when(mockJwtService.extractUserId(validRefreshToken)).thenReturn(None)
+
+      val request = FakeRequest(POST, "/api/auth/refresh")
+        .withJsonBody(Json.obj("refreshToken" -> validRefreshToken))
+
+      val result = route(app, request).get
+
+      status(result) mustBe UNAUTHORIZED
+      contentType(result) mustBe Some("application/json")
+      
+      val json = contentAsJson(result)
+      (json \ "error").as[String] mustBe "Invalid refresh token"
+    }
+
+    "return 400 Bad Request for malformed request" in {
+      val request = FakeRequest(POST, "/api/auth/refresh")
+        .withJsonBody(Json.obj("invalidField" -> "value"))
+
+      val result = route(app, request).get
+
+      status(result) mustBe BAD_REQUEST
+      contentType(result) mustBe Some("application/json")
+      
+      val json = contentAsJson(result)
+      (json \ "error").as[String] mustBe "Invalid request format"
+      (json \ "details").isDefined mustBe true
+    }
+
+    "return 400 Bad Request for missing refreshToken field" in {
+      val request = FakeRequest(POST, "/api/auth/refresh")
+        .withJsonBody(Json.obj())
+
+      val result = route(app, request).get
+
+      status(result) mustBe BAD_REQUEST
+      contentType(result) mustBe Some("application/json")
+      
+      val json = contentAsJson(result)
+      (json \ "error").as[String] mustBe "Invalid request format"
     }
   }
 }
