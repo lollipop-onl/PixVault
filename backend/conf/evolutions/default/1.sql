@@ -21,7 +21,7 @@ INSERT INTO users (id, email, password_hash, name, storage_quota, storage_used)
 VALUES (
     '7f2a4b8e-1234-5678-90ab-cdef12345678'::uuid,
     'tanaka.yuki@example.com',
-    '$2a$10$8K1p/a0dL1LXMIgoEDFrwOfMQbLgtnOoKsWc.6U6H0llP3puzeeEu',
+    '$2a$10$PTmY3pzONZSd8a9stZW1SuXwRKb1AUW.U5DQkLxM2qRh6GFm8uCTC',
     '田中 由紀',
     107374182400,
     45678901234
