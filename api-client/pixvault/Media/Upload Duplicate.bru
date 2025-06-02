@@ -1,0 +1,44 @@
+meta {
+  name: Upload Duplicate
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/v1/media
+  body: multipartForm
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:multipart-form {
+  file: @file(sample.jpg)
+  description: Testing duplicate detection
+  tags[]: duplicate
+  tags[]: test
+}
+
+docs {
+  ## Test Duplicate Upload
+  
+  Test the duplicate detection feature by uploading the same file twice.
+  
+  ### Expected Behavior
+  
+  1. First upload: Creates new media entry and uploads files to S3
+  2. Second upload: Detects duplicate by SHA-256 hash and returns existing media
+  
+  ### Benefits
+  - No duplicate files in S3 storage (cost savings)
+  - Instant response for duplicate files
+  - Same media ID returned for identical files
+  
+  ### How to Test
+  1. Run "Upload Media" request first
+  2. Run this "Upload Duplicate" request with the same file
+  3. Compare the returned media IDs - they should be identical
+  4. Check that upload completes much faster on the duplicate
+}

@@ -1,0 +1,35 @@
+meta {
+  name: Media
+}
+
+docs {
+  ## Media API Endpoints
+  
+  This folder contains all media-related API endpoints for PixVault.
+  
+  ### Available Endpoints
+  
+  1. **Upload Media** - Upload photos and videos
+  2. **List Media** - Get paginated list of user's media
+  3. **Get Media** - Get specific media details
+  4. **Update Media** - Update metadata (description, tags)
+  5. **Delete Media** - Delete media and associated files
+  6. **Upload Duplicate** - Test duplicate detection
+  
+  ### Features
+  
+  - **Duplicate Detection**: SHA-256 hash prevents duplicate uploads
+  - **Large File Support**: Up to 50GB per file
+  - **Automatic Processing**:
+    - Thumbnail generation (200x200 WebP)
+    - Preview generation (max 1920px)
+    - EXIF metadata extraction
+  - **Supported Formats**:
+    - Images: JPEG, PNG, HEIC, HEIF, TIFF, BMP
+    - RAW: CR2, NEF, ARW, RAF, ORF, DNG
+    - Video: MP4, MOV, AVI, MKV (4K/8K)
+  
+  ### Authentication
+  
+  All endpoints require JWT authentication. Set the `accessToken` variable after login.
+}

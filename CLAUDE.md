@@ -55,6 +55,29 @@ sbt clean coverage test coverageReport  # テストカバレッジレポート�
 - Evolutionファイルは `backend/conf/evolutions/default/` にあります
 - テストユーザー: `tanaka.yuki@example.com` / `SecurePass123!`
 
+#### JSON列のデータ型選択 (location, metadata)
+**現在の実装**: `TEXT` 列を使用（Slick互換性のため）
+**推奨される長期実装**: `JSONB` 列への移行
+
+**JSONB使用のメリット:**
+- **検索パフォーマンス**: GINインデックス使用で高速JSON検索
+- **データ整合性**: 自動JSON形式検証
+- **ネイティブ操作**: PostgreSQLの豊富なJSON演算子サポート
+- **ストレージ効率**: バイナリ形式での圧縮保存
+
+**TEXT使用時の懸念事項:**
+- **検索性能劣化**: フルテーブルスキャンが発生する可能性
+- **データ整合性欠如**: 無効なJSON文字列の保存リスク
+- **複雑な操作**: アプリケーション側での文字列操作が必要
+
+**JSONB移行戦略:**
+```sql
+-- 段階的移行 (将来の改善)
+ALTER TABLE media_items ADD COLUMN location_jsonb JSONB;
+UPDATE media_items SET location_jsonb = location::jsonb WHERE location IS NOT NULL;
+-- テスト後にlocation列を削除してlocation_jsonbをrenameする
+```
+
 ### 認証
 - HS256アルゴリズムを使用したJWTベース認証
 - BCryptパスワードハッシュ（本番環境で10ラウンド、テストで4ラウンド）
@@ -94,8 +117,11 @@ sbt clean coverage test coverageReport  # テストカバレッジレポート�
 - ✅ ヘルスチェックエンドポイント
 - ✅ APIバージョニング (すべてのエンドポイントが `/v1` プレフィックスを使用)
 - ✅ テストカバレッジ設定 (scoverageプラグイン)
+- ✅ メディアアップロード機能 (POST /v1/media)
+- ✅ S3/MinIO統合 (ファイルアップロード、サムネイル生成)
+- ✅ 重複検出機能 (SHA-256ハッシュベース)
 - ⏳ フロントエンドは未初期化
-- ⏳ メディアアップロード/ストレージ機能
+- ⏳ メディア管理API (GET, PUT, DELETE)
 - ⏳ S3/Glacier統合
 - ⏳ バックグラウンドジョブ処理
 
@@ -326,6 +352,23 @@ play.db.default.hikaricp.minimumIdle = 5
 - データベースマイグレーションは開発モードで自動的に実行されます
 - エンドポイントのテストには `api-client/` のBruno APIクライアントを使用
 - 詳細なログは `backend/logs/application.log` を確認
+
+## 既知の問題と制限事項
+
+### データベース関連
+- **JSONB vs TEXT**: location/metadataカラムは現在TEXT型を使用中（Slick互換性のため）
+  - 将来的にJSONB型への移行を推奨（検索パフォーマンスとデータ整合性向上）
+  - 現在の実装でもJSON文字列として適切に機能
+
+### サムネイル生成
+- **WebP対応**: Thumbnailatorライブラリの制限によりJPEG形式を使用
+  - サムネイルURLは `.webp` 拡張子だが実際はJPEG形式
+  - 将来的にWebP対応ライブラリへの移行を検討
+
+### Slick制限事項
+- **22要素タプル制限**: MediaItemRowクラスで回避済み
+  - lastAccessedAtカラムは一時的に除外中
+  - 将来的にSlick 3.5+への移行で完全解決予定
 
 ## Gitコミットメッセージ規約
 Conventional Commits仕様に従ってください:
