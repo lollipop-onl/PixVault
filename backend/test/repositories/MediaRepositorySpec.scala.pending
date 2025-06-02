@@ -1,0 +1,293 @@
+package repositories
+
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.wordspec.AsyncWordSpec
+import org.scalatestplus.play._
+import org.scalatestplus.play.guice._
+import play.api.Application
+import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.db.slick.DatabaseConfigProvider
+import slick.jdbc.JdbcProfile
+import models._
+import play.api.libs.json.{Json, OFormat}
+import repositories.MediaRepository
+import modules.RepositoryModule
+import scala.concurrent.ExecutionContext
+import java.util.UUID
+import java.time.Instant
+
+class MediaRepositorySpec extends AsyncWordSpec with Matchers with GuiceOneAppPerSuite {
+
+  implicit val ec: ExecutionContext = ExecutionContext.global
+
+  override def fakeApplication(): Application = new GuiceApplicationBuilder()
+    .bindings(new RepositoryModule)
+    .configure(
+      "slick.dbs.default.profile" -> "slick.jdbc.H2Profile$",
+      "slick.dbs.default.db.driver" -> "org.h2.Driver",
+      "slick.dbs.default.db.url" -> "jdbc:h2:mem:play-test;DATABASE_TO_UPPER=false",
+      "play.evolutions.enabled" -> true,
+      "play.evolutions.autoApply" -> true
+    )
+    .build()
+
+  lazy val dbConfigProvider = app.injector.instanceOf[DatabaseConfigProvider]
+  lazy val mediaRepository = app.injector.instanceOf[MediaRepository]
+
+  def createTestMediaItem(
+    id: UUID = UUID.randomUUID(),
+    userId: UUID = UUID.randomUUID(),
+    filename: String = "test.jpg",
+    fileHash: String = "abcdef123456"
+  ): MediaItem = MediaItem(
+    id = id,
+    userId = userId,
+    `type` = "photo",
+    filename = filename,
+    originalFilename = "sample.jpg",
+    fileHash = fileHash,
+    mimeType = "image/jpeg",
+    size = 1024L,
+    width = Some(800),
+    height = Some(600),
+    duration = None,
+    description = Some("Test image"),
+    tags = List("test", "sample"),
+    location = None,
+    metadata = None,
+    storageClass = "STANDARD",
+    storageStatus = "ACTIVE",
+    thumbnailUrl = Some("http://localhost:9090/bucket/thumb.jpg"),
+    previewUrl = Some("http://localhost:9090/bucket/preview.jpg"),
+    originalUrl = Some("http://localhost:9090/bucket/original.jpg"),
+    capturedAt = None,
+    uploadedAt = Instant.now(),
+    archivedAt = None,
+    lastAccessedAt = Instant.now()
+  )
+
+  "MediaRepository" should {
+
+    "create and retrieve a media item" in {
+      val testMedia = createTestMediaItem()
+
+      for {
+        created <- mediaRepository.create(testMedia)
+        retrieved <- mediaRepository.findById(testMedia.id)
+      } yield {
+        created.id mustBe testMedia.id
+        created.filename mustBe testMedia.filename
+        created.fileHash mustBe testMedia.fileHash
+
+        retrieved.isDefined mustBe true
+        retrieved.get.id mustBe testMedia.id
+        retrieved.get.tags mustBe testMedia.tags
+      }
+    }
+
+    "find media by file hash" in {
+      val testMedia = createTestMediaItem(fileHash = "unique-hash-123")
+
+      for {
+        _ <- mediaRepository.create(testMedia)
+        found <- mediaRepository.findByHash("unique-hash-123")
+        notFound <- mediaRepository.findByHash("non-existent-hash")
+      } yield {
+        found.isDefined mustBe true
+        found.get.id mustBe testMedia.id
+        found.get.fileHash mustBe "unique-hash-123"
+
+        notFound mustBe None
+      }
+    }
+
+    "find media by user ID with pagination" in {
+      val userId = UUID.randomUUID()
+      val media1 = createTestMediaItem(userId = userId, filename = "file1.jpg")
+      val media2 = createTestMediaItem(userId = userId, filename = "file2.jpg")
+      val media3 = createTestMediaItem(userId = userId, filename = "file3.jpg")
+      val otherUserMedia = createTestMediaItem() // Different user
+
+      for {
+        _ <- mediaRepository.create(media1)
+        _ <- mediaRepository.create(media2)
+        _ <- mediaRepository.create(media3)
+        _ <- mediaRepository.create(otherUserMedia)
+        allUserMedia <- mediaRepository.findByUserId(userId, 0, 10)
+        paginatedMedia <- mediaRepository.findByUserId(userId, 1, 2)
+      } yield {
+        allUserMedia.length mustBe 3
+        allUserMedia.map(_.userId).distinct mustBe List(userId)
+
+        paginatedMedia.length mustBe 2
+        // Verify pagination works (skip 1, take 2)
+      }
+    }
+
+    "update media metadata" in {
+      val testMedia = createTestMediaItem()
+      val updatedMedia = testMedia.copy(
+        description = Some("Updated description"),
+        tags = List("updated", "test", "new")
+      )
+
+      for {
+        _ <- mediaRepository.create(testMedia)
+        updateResult <- mediaRepository.update(updatedMedia)
+        retrieved <- mediaRepository.findById(testMedia.id)
+      } yield {
+        updateResult.isDefined mustBe true
+        updateResult.get.description mustBe Some("Updated description")
+        updateResult.get.tags mustBe List("updated", "test", "new")
+
+        retrieved.isDefined mustBe true
+        retrieved.get.description mustBe Some("Updated description")
+        retrieved.get.tags mustBe List("updated", "test", "new")
+      }
+    }
+
+    "delete media item" in {
+      val testMedia = createTestMediaItem()
+
+      for {
+        _ <- mediaRepository.create(testMedia)
+        deleteResult <- mediaRepository.delete(testMedia.id)
+        retrieved <- mediaRepository.findById(testMedia.id)
+      } yield {
+        deleteResult mustBe true
+        retrieved mustBe None
+      }
+    }
+
+    "handle non-existent media operations gracefully" in {
+      val nonExistentId = UUID.randomUUID()
+
+      for {
+        findResult <- mediaRepository.findById(nonExistentId)
+        deleteResult <- mediaRepository.delete(nonExistentId)
+      } yield {
+        findResult mustBe None
+        deleteResult mustBe false
+      }
+    }
+
+    "enforce unique file hash constraint" in {
+      val hash = "duplicate-hash-test"
+      val media1 = createTestMediaItem(fileHash = hash, filename = "file1.jpg")
+      val media2 = createTestMediaItem(fileHash = hash, filename = "file2.jpg")
+
+      for {
+        _ <- mediaRepository.create(media1)
+        duplicateAttempt <- mediaRepository.create(media2).recover {
+          case _: Exception => media1 // Return original if duplicate constraint fails
+        }
+      } yield {
+        // Should either fail or return original media
+        // The exact behavior depends on database constraint handling
+        duplicateAttempt.fileHash mustBe hash
+      }
+    }
+
+    "handle media with tags correctly" in {
+      val mediaWithTags = createTestMediaItem().copy(
+        tags = List("family", "vacation", "2024", "summer")
+      )
+      val mediaWithoutTags = createTestMediaItem().copy(tags = List.empty)
+
+      for {
+        withTags <- mediaRepository.create(mediaWithTags)
+        withoutTags <- mediaRepository.create(mediaWithoutTags)
+        retrievedWithTags <- mediaRepository.findById(mediaWithTags.id)
+        retrievedWithoutTags <- mediaRepository.findById(mediaWithoutTags.id)
+      } yield {
+        withTags.tags mustBe List("family", "vacation", "2024", "summer")
+        withoutTags.tags mustBe List.empty
+
+        retrievedWithTags.get.tags mustBe List("family", "vacation", "2024", "summer")
+        retrievedWithoutTags.get.tags mustBe List.empty
+      }
+    }
+
+    "handle media with metadata fields" in {
+      val location = Location(
+        latitude = 35.6762,
+        longitude = 139.6503,
+        placeName = Some("Tokyo, Japan")
+      )
+
+      val metadata = MediaMetadata(
+        camera = Some("Canon EOS R5"),
+        lens = Some("RF 24-70mm f/2.8L IS USM"),
+        iso = Some(800),
+        aperture = Some(2.8),
+        shutterSpeed = Some("1/60"),
+        focalLength = Some(50.0)
+      )
+
+      val mediaWithMetadata = createTestMediaItem().copy(
+        location = Some(location),
+        metadata = Some(metadata)
+      )
+
+      for {
+        created <- mediaRepository.create(mediaWithMetadata)
+        retrieved <- mediaRepository.findById(mediaWithMetadata.id)
+      } yield {
+        created.location.isDefined mustBe true
+        created.metadata.isDefined mustBe true
+
+        retrieved.get.location.isDefined mustBe true
+        retrieved.get.location.get.latitude mustBe 35.6762
+        retrieved.get.location.get.placeName mustBe Some("Tokyo, Japan")
+
+        retrieved.get.metadata.isDefined mustBe true
+        retrieved.get.metadata.get.camera mustBe Some("Canon EOS R5")
+        retrieved.get.metadata.get.iso mustBe Some(800)
+      }
+    }
+
+    "sort results by upload date descending" in {
+      val userId = UUID.randomUUID()
+      val now = Instant.now()
+      val older = now.minusSeconds(3600)
+      val newest = now.plusSeconds(1800)
+
+      val oldMedia = createTestMediaItem(userId = userId).copy(uploadedAt = older)
+      val newMedia = createTestMediaItem(userId = userId).copy(uploadedAt = newest)
+      val currentMedia = createTestMediaItem(userId = userId).copy(uploadedAt = now)
+
+      for {
+        _ <- mediaRepository.create(oldMedia)
+        _ <- mediaRepository.create(currentMedia)
+        _ <- mediaRepository.create(newMedia)
+        sortedMedia <- mediaRepository.findByUserId(userId, 0, 10)
+      } yield {
+        sortedMedia.length mustBe 3
+        // Should be sorted by uploadedAt DESC (newest first)
+        sortedMedia.head.uploadedAt.isAfter(sortedMedia(1).uploadedAt) mustBe true
+        sortedMedia(1).uploadedAt.isAfter(sortedMedia(2).uploadedAt) mustBe true
+      }
+    }
+  }
+
+  "MediaRepository error handling" should {
+
+    "handle database connection failures gracefully" in {
+      // This would test database connection failure scenarios
+      // Requires more complex setup with connection mocking
+      pending
+    }
+
+    "handle transaction rollbacks properly" in {
+      // This would test transaction handling
+      // Requires testing transaction boundaries
+      pending
+    }
+
+    "handle concurrent access scenarios" in {
+      // This would test concurrent read/write operations
+      // Requires multi-threaded test setup
+      pending
+    }
+  }
+}

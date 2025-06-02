@@ -10,6 +10,7 @@ libraryDependencies ++= Seq(
   guice,
   "org.scalatestplus.play" %% "scalatestplus-play" % "7.0.1" % Test,
   "org.mockito" % "mockito-core" % "5.8.0" % Test,
+  "com.h2database" % "h2" % "2.2.224" % Test,
   "com.fasterxml.jackson.core" % "jackson-databind" % "2.14.3",
   "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.14.3",
   // PostgreSQL and database
